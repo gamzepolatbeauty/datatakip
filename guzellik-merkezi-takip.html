@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gamze Polat Beauty | Takip Sistemi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg: #17151A;
+    --surface: #211E25;
+    --surface-2: #2A2631;
+    --surface-3: #332E3C;
+    --border: #3A3542;
+    --gold: #C9A15A;
+    --gold-dim: #8A6F3F;
+    --rose: #B85C7A;
+    --text: #F3EFE8;
+    --text-muted: #A39CAA;
+    --text-faint: #726C7A;
+    --success: #6B9E78;
+    --danger: #C46A5E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3,.serif{ font-family:'Fraunces',serif; font-weight:500; letter-spacing:0.2px; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select{ font-family:inherit; font-size:16px; }
+
+  #connBanner{
+    display:none; position:fixed; top:0; left:0; right:0; z-index:300;
+    background:var(--danger); color:#2A1210; font-size:13px; text-align:center; padding:8px;
+  }
+
+  /* ---------- LOGIN ---------- */
+  #loginScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-card{ width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px 32px; }
+  .login-mark{ width:56px;height:56px;border-radius:50%; border:1px solid var(--gold); display:flex;align-items:center;justify-content:center; margin:0 auto 20px auto; }
+  .login-mark span{ font-family:'Fraunces',serif; font-size:22px; color:var(--gold); }
+  .login-card h1{ text-align:center; font-size:21px; margin:0 0 4px 0; }
+  .login-sub{ text-align:center; color:var(--text-muted); font-size:13px; margin:0 0 28px 0; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+  .field input, .field select{
+    width:100%; padding:12px 13px; background:var(--surface-2);
+    border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; outline:none;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--gold); }
+  .btn{ width:100%; padding:13px; border-radius:8px; border:none; background:var(--gold); color:#211A0E; font-weight:600; font-size:14.5px; margin-top:6px; }
+  .btn:hover{ background:#D8B06C; }
+  .btn:disabled{ opacity:0.6; cursor:default; }
+  .btn.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn.secondary:hover{ border-color:var(--gold); color:var(--gold); }
+  .login-error{ color:var(--danger); font-size:13px; text-align:center; margin-top:12px; min-height:16px; }
+  .login-hint{ margin-top:22px; padding-top:18px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-faint); line-height:1.6; }
+
+  /* ---------- APP SHELL ---------- */
+  #app{ display:none; min-height:100vh; }
+  .shell{ display:flex; min-height:100vh; }
+  .sidebar{ width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:24px 16px; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 8px 24px 8px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .brand-mark{ width:32px;height:32px;border-radius:50%; border:1px solid var(--gold); display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .brand-mark span{ color:var(--gold); font-size:14px; }
+  .brand-name{ font-size:14px; line-height:1.3; }
+  .brand-name small{ display:block; color:var(--text-faint); font-size:10.5px; font-family:'Manrope',sans-serif; }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:var(--text-muted); font-size:13.5px; margin-bottom:2px; background:none; border:none; width:100%; text-align:left; }
+  .nav-item:hover{ background:var(--surface-2); color:var(--text); }
+  .nav-item.active{ background:var(--surface-2); color:var(--gold); }
+  .nav-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .sidebar-footer{ margin-top:auto; padding-top:16px; border-top:1px solid var(--border); }
+  .user-chip{ display:flex; align-items:center; gap:10px; padding:8px; margin-bottom:8px; }
+  .user-avatar{ width:30px;height:30px;border-radius:50%; background:var(--surface-3); display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:600; color:var(--gold); flex-shrink:0; }
+  .user-meta{ font-size:12.5px; line-height:1.3; overflow:hidden;}
+  .user-meta div:first-child{ color:var(--text); }
+  .user-meta div:last-child{ color:var(--text-faint); font-size:11px; }
+  .logout-btn{ width:100%; padding:9px; font-size:12.5px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); }
+  .logout-btn:hover{ border-color:var(--danger); color:var(--danger); }
+  .sync-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:6px; }
+  .sync-dot.off{ background:var(--danger); }
+
+  .main{ flex:1; padding:32px 40px; max-width:1200px; width:100%; }
+  .page-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:26px; flex-wrap:wrap; gap:12px; }
+  .page-header h1{ font-size:25px; margin:0; }
+  .page-header p{ color:var(--text-muted); font-size:13.5px; margin:4px 0 0 0; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+  .form-section-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--gold); margin:0 0 14px 0; }
+  .chip-group{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ padding:9px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13px; }
+  .chip:hover{ border-color:var(--gold); }
+  .chip.selected{ background:rgba(201,161,90,0.16); border-color:var(--gold); color:var(--gold); }
+  .chip small{ opacity:0.75; margin-left:4px; }
+  .toggle-group{ display:flex; gap:8px; }
+  .toggle-btn{ flex:1; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13.5px; }
+  .toggle-btn.selected.yes{ background:rgba(107,158,120,0.16); border-color:var(--success); color:var(--success); }
+  .toggle-btn.selected.no{ background:rgba(196,106,94,0.16); border-color:var(--danger); color:var(--danger); }
+  .divider{ height:1px; background:var(--border); margin:22px 0; }
+  .helper-text{ font-size:12px; color:var(--text-faint); margin-top:8px; }
+
+  .filters-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .filters-row select, .filters-row input{ padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{ text-align:left; color:var(--text-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
+  tbody tr:hover{ background:var(--surface-2); }
+  .badge{ display:inline-block; padding:3px 9px; border-radius:12px; font-size:11.5px; white-space:nowrap; }
+  .badge.sold{ background:rgba(107,158,120,0.16); color:var(--success); }
+  .badge.nosale{ background:rgba(163,156,170,0.14); color:var(--text-muted); }
+  .badge.cash{ background:rgba(201,161,90,0.16); color:var(--gold); }
+  .badge.card{ background:rgba(184,92,122,0.16); color:var(--rose); }
+  .badge.eligible{ background:rgba(107,158,120,0.16); color:var(--success); }
+  .badge.noteligible{ background:rgba(163,156,170,0.14); color:var(--text-muted); }
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--text-faint); }
+
+  .kpi-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; }
+  .kpi-label{ font-size:12px; color:var(--text-muted); margin-bottom:8px; }
+  .kpi-value{ font-size:25px; font-family:'Fraunces',serif; }
+  .kpi-value.gold{ color:var(--gold); }
+  .chart-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; }
+  .chart-card h3{ font-size:14px; margin:0 0 16px 0; color:var(--text); }
+  .gauge-num{ font-family:'Fraunces',serif; font-size:30px; fill:var(--gold); }
+  .gauge-label{ font-size:11px; fill:var(--text-faint); }
+  .gauge-wrap{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .progress-track{ height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden; }
+  .progress-fill{ height:100%; background:var(--gold); border-radius:6px; transition:width .3s; }
+
+  .user-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
+  .user-row:last-child{ border-bottom:none; }
+  .icon-btn{ background:none; border:1px solid var(--border); border-radius:7px; padding:7px 10px; color:var(--text-muted); font-size:12px; margin-left:8px; }
+  .icon-btn:hover{ border-color:var(--gold); color:var(--gold); }
+  .icon-btn.danger:hover{ border-color:var(--danger); color:var(--danger); }
+  .price-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .price-row:last-child{ border-bottom:none; }
+  .price-row-name{ font-size:13.5px; }
+  .price-row-controls{ display:flex; align-items:center; gap:8px; }
+  .price-row-controls input{ width:90px; padding:7px 9px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:13px; }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal-overlay.show{ display:flex; }
+  .modal-card{ background:var(--surface-2); border:1px solid var(--border); border-radius:14px; padding:26px; width:100%; max-width:360px; }
+  .modal-card h3{ margin:0 0 18px 0; font-size:16px; }
+  .toast{ position:fixed; bottom:24px; right:24px; background:var(--surface-3); border:1px solid var(--gold); color:var(--text); padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; opacity:0; transition:opacity .25s; max-width:320px; }
+  .toast.show{ opacity:1; }
+  ::placeholder{ color:var(--text-faint); }
+
+  /* ---------- MOBILE ---------- */
+  .mobile-topbar{ display:none; }
+  .mobile-tabbar{ display:none; }
+
+  @media (max-width:820px){
+    .grid-2,.grid-3{ grid-template-columns:1fr; }
+    .sidebar{ display:none; }
+    .main{ padding:16px; padding-top:70px; padding-bottom:86px; max-width:100%; }
+    .mobile-topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      position:fixed; top:0; left:0; right:0; z-index:150;
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top));
+    }
+    .mobile-topbar .brand{ border:none; padding:0; margin:0; }
+    .mobile-topbar .brand-name{ font-size:13.5px; }
+    .mobile-topbar-right{ display:flex; align-items:center; gap:10px; }
+    .mobile-logout{ background:none; border:1px solid var(--border); border-radius:8px; padding:7px 12px; color:var(--text-muted); font-size:12px; }
+    .mobile-tabbar{
+      display:flex; position:fixed; bottom:0; left:0; right:0; z-index:150;
+      background:var(--surface); border-top:1px solid var(--border);
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    .mobile-tabbar .nav-item{
+      flex:1; flex-direction:column; align-items:center; gap:4px; padding:10px 4px 8px 4px;
+      border-radius:0; font-size:11px; text-align:center;
+    }
+    .mobile-tabbar .nav-item .nav-dot{ display:none; }
+    .mobile-tabbar .nav-item.active{ background:none; }
+    .mobile-tabbar .tab-icon{
+      width:20px; height:20px; border-radius:6px; border:1.5px solid currentColor; display:flex;
+      align-items:center; justify-content:center; font-size:11px;
+    }
+    .filters-row{ flex-direction:column; align-items:stretch; }
+    .filters-row select, .filters-row input{ width:100%; }
+    .toggle-group{ flex-direction:column; }
+    table{ font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="connBanner">Firestore bağlantısı kurulamadı. İnternetini ve Firebase kurallarını kontrol et.</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-mark"><span>G</span></div>
+    <h1>Gamze Polat Beauty</h1>
+    <p class="login-sub" id="loginSub">Bağlanıyor...</p>
+    <div class="field">
+      <label>Kullanıcı adı</label>
+      <input id="loginUser" type="text" placeholder="kullanici.adi" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Şifre</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" id="loginBtn" onclick="handleLogin()" disabled>Bağlanıyor...</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">
+      İlk kurulum hesapları: <b>admin / admin123</b> (yönetici), <b>personel1 / 1234</b>, <b>personel2 / 1234</b>.
+      Giriş yaptıktan sonra Ayarlar bölümünden kendi personelini ekleyip şifreleri değiştirebilirsin.
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Mobile top bar -->
+  <div class="mobile-topbar">
+    <div class="brand">
+      <div class="brand-mark"><span>G</span></div>
+      <div class="brand-name">Gamze Polat Beauty</div>
+    </div>
+    <div class="mobile-topbar-right">
+      <span class="sync-dot" id="syncDotMobile"></span>
+      <button class="mobile-logout" onclick="handleLogout()">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span>G</span></div>
+        <div class="brand-name">Gamze Polat Beauty<small>Takip sistemi</small></div>
+      </div>
+      <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Yeni kayıt</span></button>
+      <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Kayıtlar</span></button>
+      <button class="nav-item" data-view="dashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
+      <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="userAvatar">--</div>
+          <div class="user-meta"><div id="userName">-</div><div id="userRole">-</div></div>
+        </div>
+        <div style="font-size:11px; color:var(--text-faint); margin-bottom:10px;"><span class="sync-dot" id="syncDot"></span><span class="label" id="syncLabel">Canlı bağlı</span></div>
+        <button class="logout-btn" onclick="handleLogout()"><span class="label">Çıkış yap</span></button>
+      </div>
+    </div>
+
+    <div class="main" id="mainContent"></div>
+  </div>
+
+  <!-- Mobile bottom tab bar -->
+  <div class="mobile-tabbar">
+    <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Yeni</button>
+    <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Kayıtlar</button>
+    <button class="nav-item" data-view="dashboard" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
+    <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDocs, onSnapshot, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqsnbdSMHHxXusCv3AHYCD7bIKb2GYIJA",
+  authDomain: "gamze-polat-beauty.firebaseapp.com",
+  projectId: "gamze-polat-beauty",
+  storageBucket: "gamze-polat-beauty.firebasestorage.app",
+  messagingSenderId: "330047910176",
+  appId: "1:330047910176:web:7f4684386c4e9c1e6c2745",
+  measurementId: "G-T4KBLLBYH1"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+/* ================= CONFIG (defaults, overridden by Firestore) ================= */
+let CHANNELS = ['Google','Instagram','Telefon','Diğer'];
+let SERVICES = [
+  {name:'Lazer Epilasyon', price:500},
+  {name:'Cilt Bakımı', price:400},
+  {name:'Protez Tırnak', price:350},
+  {name:'Kaş / Kirpik', price:250},
+  {name:'Saç Bakımı', price:300}
+];
+let PRODUCTS = [
+  {name:'Bakım Kremi', price:200},
+  {name:'Şampuan', price:150}
+];
+let BUSINESS = { monthlyQuota:500000, minContributionPercent:10, commissionPercent:10 };
+
+const DEFAULT_USERS = [
+  {username:'admin', password:'admin123', name:'Yönetici', role:'admin'},
+  {username:'personel1', password:'1234', name:'Personel 1', role:'staff'},
+  {username:'personel2', password:'1234', name:'Personel 2', role:'staff'}
+];
+
+let state = {
+  users: [],
+  records: [],
+  currentUser: null,
+  view: 'new',
+  ready: false,
+  newRecord: { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' },
+  recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
+  dashboardRange: 'all',
+  charts: {}
+};
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function currentMonthKey(){ return new Date().toISOString().slice(0,7); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function setConn(ok){
+  document.getElementById('connBanner').style.display = ok ? 'none' : 'block';
+  ['syncDot','syncDotMobile'].forEach(id=>{
+    const dot = document.getElementById(id);
+    if(dot) dot.classList.toggle('off', !ok);
+  });
+  const label = document.getElementById('syncLabel');
+  if(label){ label.textContent = ok ? 'Canlı bağlı' : 'Bağlantı yok'; }
+}
+function money(n){ return '₺' + (Math.round((n||0)*100)/100).toLocaleString('tr-TR'); }
+
+/* ================= FIRESTORE SEED + SYNC ================= */
+async function seedUsersIfEmpty(){
+  const snap = await getDocs(collection(db,'users'));
+  if(snap.empty){
+    const batch = writeBatch(db);
+    DEFAULT_USERS.forEach(u=>{
+      batch.set(doc(db,'users',u.username), { password:u.password, name:u.name, role:u.role });
+    });
+    await batch.commit();
+  }
+}
+
+let usersLoadedOnce=false, recordsLoadedOnce=false, configLoadedOnce=false, businessLoadedOnce=false;
+function onDataReady(){
+  if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && businessLoadedOnce && !state.ready){
+    state.ready = true;
+    document.getElementById('loginBtn').disabled = false;
+    document.getElementById('loginBtn').textContent = 'Giriş yap';
+    document.getElementById('loginSub').textContent = 'Veri takip sistemine giriş yap';
+  }
+}
+
+function subscribeUsers(){
+  onSnapshot(collection(db,'users'), snap=>{
+    state.users = snap.docs.map(d=>({ username:d.id, ...d.data() }));
+    setConn(true);
+    usersLoadedOnce = true;
+    onDataReady();
+    if(state.currentUser){
+      const fresh = state.users.find(u=>u.username===state.currentUser.username);
+      if(fresh) state.currentUser = fresh;
+      if(['settings','dashboard','records'].includes(state.view)) render();
+    }
+  }, err=>{ setConn(false); });
+}
+function subscribeRecords(){
+  onSnapshot(collection(db,'records'), snap=>{
+    state.records = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+      .sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+    setConn(true);
+    recordsLoadedOnce = true;
+    onDataReady();
+    if(state.currentUser && (state.view==='records' || state.view==='dashboard')) render();
+  }, err=>{ setConn(false); });
+}
+function subscribeConfig(){
+  onSnapshot(doc(db,'config','lists'), snap=>{
+    if(snap.exists()){
+      const data = snap.data();
+      if(Array.isArray(data.channels) && data.channels.length) CHANNELS = data.channels;
+      if(Array.isArray(data.services) && data.services.length) SERVICES = data.services;
+      if(Array.isArray(data.products)) PRODUCTS = data.products;
+    } else {
+      setDoc(doc(db,'config','lists'), { channels: CHANNELS, services: SERVICES, products: PRODUCTS });
+    }
+    setConn(true);
+    configLoadedOnce = true;
+    onDataReady();
+    if(state.currentUser) render();
+  }, err=>{ setConn(false); });
+}
+function subscribeBusiness(){
+  onSnapshot(doc(db,'config','business'), snap=>{
+    if(snap.exists()){
+      const data = snap.data();
+      BUSINESS = { ...BUSINESS, ...data };
+    } else {
+      setDoc(doc(db,'config','business'), BUSINESS);
+    }
+    setConn(true);
+    businessLoadedOnce = true;
+    onDataReady();
+    if(state.currentUser && (state.view==='dashboard' || state.view==='settings')) render();
+  }, err=>{ setConn(false); });
+}
+async function saveConfig(){
+  try{ await setDoc(doc(db,'config','lists'), { channels: CHANNELS, services: SERVICES, products: PRODUCTS }); }
+  catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
+}
+async function saveBusiness(){
+  try{ await setDoc(doc(db,'config','business'), BUSINESS); }
+  catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
+}
+
+/* ================= AUTH ================= */
+window.handleLogin = function(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const found = state.users.find(x=>x.username===u && x.password===p);
+  const err = document.getElementById('loginError');
+  if(!found){ err.textContent = 'Kullanıcı adı veya şifre hatalı.'; return; }
+  err.textContent = '';
+  state.currentUser = found;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  renderShellForUser();
+  setView(found.role === 'admin' ? 'dashboard' : 'new');
+}
+window.handleLogout = function(){
+  state.currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+function renderShellForUser(){
+  const u = state.currentUser;
+  document.getElementById('userAvatar').textContent = u.name.split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('userName').textContent = u.name;
+  document.getElementById('userRole').textContent = u.role === 'admin' ? 'Yönetici' : 'Personel';
+  document.getElementById('navSettings').style.display = u.role === 'admin' ? 'flex' : 'none';
+  document.getElementById('navSettingsMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
+}
+
+/* ================= NAV ================= */
+window.setView = function(view){
+  state.view = view;
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  render();
+  window.scrollTo(0,0);
+}
+
+function render(){
+  const main = document.getElementById('mainContent');
+  if(state.view === 'new') main.innerHTML = renderNewView();
+  else if(state.view === 'records') main.innerHTML = renderRecordsView();
+  else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
+  else if(state.view === 'settings') main.innerHTML = renderSettingsView();
+  if(state.view === 'dashboard') requestAnimationFrame(renderCharts);
+}
+
+/* ================= NEW RECORD VIEW ================= */
+function recomputeAmount(){
+  const total = [...state.newRecord.services, ...state.newRecord.products].reduce((s,x)=>s+(x.price||0),0);
+  state.newRecord.amount = total;
+}
+function renderNewView(){
+  const r = state.newRecord;
+  const channelChips = CHANNELS.map(c=>`<button class="chip ${r.channel===c?'selected':''}" onclick="setChannel('${c}')">${c}</button>`).join('');
+  const serviceChips = SERVICES.map(s=>`<button class="chip ${r.services.some(x=>x.name===s.name)?'selected':''}" onclick="toggleService('${s.name}')">${s.name}<small>${money(s.price)}</small></button>`).join('');
+  const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>x.name===p.name)?'selected':''}" onclick="toggleProduct('${p.name}')">${p.name}<small>${money(p.price)}</small></button>`).join('');
+
+  return `
+  <div class="page-header">
+    <div><h1>Yeni kayıt</h1><p>İletişime geçen kişinin bilgilerini gir.</p></div>
+  </div>
+  <div class="card" style="max-width:640px;">
+    <div class="form-section-title">İletişim kanalı</div>
+    <div class="chip-group" style="margin-bottom:22px;">${channelChips}</div>
+
+    <div class="form-section-title">İstenen / satılan hizmet(ler)</div>
+    <div class="chip-group" style="margin-bottom:22px;">${serviceChips || '<span class="helper-text">Henüz hizmet tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+
+    <div class="form-section-title">Satılan ürün(ler)</div>
+    <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+
+    <div class="grid-2" style="margin-bottom:18px;">
+      <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" placeholder="Ad Soyad"></div>
+      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" placeholder="05xx xxx xx xx"></div>
+    </div>
+    <div class="field" style="max-width:200px; margin-bottom:22px;"><label>Tarih</label><input id="fDate" type="date" value="${r.date}"></div>
+
+    <div class="divider"></div>
+
+    <div class="form-section-title">Satış durumu</div>
+    <div class="toggle-group" style="margin-bottom:18px; max-width:340px;">
+      <button class="toggle-btn ${r.purchased===true?'selected yes':''}" onclick="setPurchased(true)">Satış yapıldı</button>
+      <button class="toggle-btn ${r.purchased===false?'selected no':''}" onclick="setPurchased(false)">Satış yapılmadı</button>
+    </div>
+
+    ${r.purchased===true ? `
+    <div class="grid-2" style="margin-bottom:8px;">
+      <div class="field">
+        <label>Ödeme şekli</label>
+        <div class="toggle-group">
+          <button class="toggle-btn ${r.payment==='Nakit'?'selected yes':''}" onclick="setPayment('Nakit')">Nakit</button>
+          <button class="toggle-btn ${r.payment==='Kredi Kartı'?'selected yes':''}" onclick="setPayment('Kredi Kartı')">Kredi Kartı</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Tutar (₺) — fiyat listesinden otomatik hesaplandı, gerekirse değiştir</label>
+        <input id="fAmount" type="number" min="0" value="${r.amount}" placeholder="0">
+      </div>
+    </div>` : ''}
+
+    <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" placeholder="Ek bilgi"></div>
+
+    <button class="btn" style="max-width:220px; margin-top:14px;" onclick="submitRecord()">Kaydet</button>
+  </div>
+  `;
+}
+window.setChannel = function(c){ state.newRecord.channel = c; render(); }
+window.toggleService = function(name){
+  const arr = state.newRecord.services;
+  const i = arr.findIndex(x=>x.name===name);
+  if(i>-1){ arr.splice(i,1); }
+  else { const found = SERVICES.find(s=>s.name===name); if(found) arr.push({name:found.name, price:found.price}); }
+  recomputeAmount();
+  render();
+}
+window.toggleProduct = function(name){
+  const arr = state.newRecord.products;
+  const i = arr.findIndex(x=>x.name===name);
+  if(i>-1){ arr.splice(i,1); }
+  else { const found = PRODUCTS.find(p=>p.name===name); if(found) arr.push({name:found.name, price:found.price}); }
+  recomputeAmount();
+  render();
+}
+window.setPurchased = function(v){ state.newRecord.purchased = v; if(!v){ state.newRecord.payment=null; } render(); }
+window.setPayment = function(p){ state.newRecord.payment = p; render(); }
+
+window.submitRecord = async function(){
+  syncNewRecordInputs();
+  const r = state.newRecord;
+  if(!r.channel){ showToast('Lütfen iletişim kanalını seç.'); return; }
+  if(r.services.length===0 && r.products.length===0){ showToast('Lütfen en az bir hizmet veya ürün seç.'); return; }
+  if(r.purchased===null){ showToast('Satış durumunu belirt.'); return; }
+  if(r.purchased && !r.payment){ showToast('Ödeme şeklini seç.'); return; }
+
+  const record = {
+    date: r.date || todayISO(),
+    channel: r.channel,
+    services: r.services.slice(),
+    products: r.products.slice(),
+    customerName: r.customerName || '',
+    customerPhone: r.customerPhone || '',
+    purchased: r.purchased,
+    payment: r.purchased ? r.payment : null,
+    amount: r.purchased ? (parseFloat(r.amount)||0) : 0,
+    note: r.note || '',
+    staffUsername: state.currentUser.username,
+    staffName: state.currentUser.name,
+    createdAt: new Date().toISOString()
+  };
+  try{
+    await addDoc(collection(db,'records'), record);
+    state.newRecord = { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' };
+    showToast('Kayıt eklendi.');
+    render();
+  }catch(e){ showToast('Kayıt eklenemedi, bağlantıyı kontrol et.'); }
+}
+function syncNewRecordInputs(){
+  const g = id => document.getElementById(id);
+  if(g('fCustomerName')) state.newRecord.customerName = g('fCustomerName').value;
+  if(g('fCustomerPhone')) state.newRecord.customerPhone = g('fCustomerPhone').value;
+  if(g('fDate')) state.newRecord.date = g('fDate').value;
+  if(g('fAmount')) state.newRecord.amount = g('fAmount').value;
+  if(g('fNote')) state.newRecord.note = g('fNote').value;
+}
+
+/* ================= RECORDS VIEW ================= */
+function filteredRecords(){
+  const f = state.recordFilters;
+  return state.records.filter(r=>{
+    if(f.channel && r.channel !== f.channel) return false;
+    if(f.service && !r.services.some(s=>s.name===f.service)) return false;
+    if(f.staff && r.staffUsername !== f.staff) return false;
+    if(f.purchased === 'yes' && !r.purchased) return false;
+    if(f.purchased === 'no' && r.purchased) return false;
+    if(f.from && r.date < f.from) return false;
+    if(f.to && r.date > f.to) return false;
+    if(f.q){
+      const q = f.q.toLowerCase();
+      const hay = (r.customerName+' '+r.customerPhone+' '+r.note).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function renderRecordsView(){
+  const f = state.recordFilters;
+  const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
+  const rows = filteredRecords();
+  const rowsHtml = rows.length ? rows.map(r=>`
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.channel}</td>
+      <td>${(r.services||[]).map(s=>s.name).join(', ') || '-'}</td>
+      <td>${(r.products||[]).map(p=>p.name).join(', ') || '-'}</td>
+      <td>${r.customerName || '<span style="color:var(--text-faint)">-</span>'}${r.customerPhone ? '<br><span style="color:var(--text-faint);font-size:12px;">'+r.customerPhone+'</span>' : ''}</td>
+      <td>${r.purchased ? '<span class="badge sold">Satış yapıldı</span>' : '<span class="badge nosale">Satış yok</span>'}</td>
+      <td>${r.purchased ? '<span class="badge '+(r.payment==='Nakit'?'cash':'card')+'">'+r.payment+'</span>' : '-'}</td>
+      <td>${r.purchased ? money(r.amount) : '-'}</td>
+      <td>${r.staffName}</td>
+      <td><button class="icon-btn danger" onclick="deleteRecord('${r.id}')">Sil</button></td>
+    </tr>
+  `).join('') : '';
+
+  return `
+  <div class="page-header">
+    <div><h1>Kayıtlar</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length})</p></div>
+  </div>
+  <div class="card">
+    <div class="filters-row">
+      <input type="text" placeholder="Ara: isim, telefon, not" value="${f.q}" oninput="updateFilter('q', this.value)" style="min-width:200px;">
+      <select onchange="updateFilter('channel', this.value)">
+        <option value="">Tüm kanallar</option>
+        ${CHANNELS.map(c=>`<option value="${c}" ${f.channel===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <select onchange="updateFilter('service', this.value)">
+        <option value="">Tüm hizmetler</option>
+        ${SERVICES.map(s=>`<option value="${s.name}" ${f.service===s.name?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+      <select onchange="updateFilter('staff', this.value)">
+        <option value="">Tüm personel</option>
+        ${staffOptions}
+      </select>
+      <select onchange="updateFilter('purchased', this.value)">
+        <option value="">Satış durumu</option>
+        <option value="yes" ${f.purchased==='yes'?'selected':''}>Satış yapıldı</option>
+        <option value="no" ${f.purchased==='no'?'selected':''}>Satış yok</option>
+      </select>
+      <input type="date" value="${f.from}" onchange="updateFilter('from', this.value)">
+      <input type="date" value="${f.to}" onchange="updateFilter('to', this.value)">
+    </div>
+    ${rows.length ? `
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Tarih</th><th>Kanal</th><th>Hizmet</th><th>Ürün</th><th>Müşteri</th><th>Satış</th><th>Ödeme</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    </div>` : `<div class="empty-state">Bu filtrelere uyan kayıt yok. Filtreleri temizleyip tekrar dene.</div>`}
+  </div>
+  `;
+}
+window.updateFilter = function(key, val){ state.recordFilters[key] = val; render(); }
+window.deleteRecord = async function(id){
+  try{
+    await deleteDoc(doc(db,'records',id));
+    showToast('Kayıt silindi.');
+  }catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
+}
+
+/* ================= DASHBOARD VIEW ================= */
+function recordsInRange(){
+  const range = state.dashboardRange;
+  if(range === 'all') return state.records;
+  const now = new Date();
+  let from = new Date();
+  if(range==='today'){ from.setHours(0,0,0,0); }
+  else if(range==='week'){ from.setDate(now.getDate()-7); }
+  else if(range==='month'){ from.setMonth(now.getMonth()-1); }
+  const fromISO = from.toISOString().slice(0,10);
+  return state.records.filter(r=>r.date >= fromISO);
+}
+function recordsThisMonth(){
+  const mk = currentMonthKey();
+  return state.records.filter(r=> r.purchased && r.date && r.date.slice(0,7)===mk);
+}
+function renderDashboardView(){
+  const recs = recordsInRange();
+  const total = recs.length;
+  const sold = recs.filter(r=>r.purchased).length;
+  const conv = total ? Math.round((sold/total)*100) : 0;
+  const revenue = recs.reduce((s,r)=>s+(r.purchased?r.amount:0),0);
+
+  const monthRecs = recordsThisMonth();
+  const monthTotal = monthRecs.reduce((s,r)=>s+r.amount,0);
+  const quota = BUSINESS.monthlyQuota || 0;
+  const quotaPct = quota ? Math.min(100, Math.round((monthTotal/quota)*100)) : 0;
+
+  const primRows = state.users.map(u=>{
+    const own = monthRecs.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
+    const contribPct = quota ? (own/quota*100) : 0;
+    const eligible = contribPct >= (BUSINESS.minContributionPercent||0);
+    const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
+    return { name:u.name, own, contribPct, eligible, commission };
+  }).sort((a,b)=>b.own-a.own);
+
+  return `
+  <div class="page-header">
+    <div><h1>Dashboard</h1><p>Kanal, hizmet, ürün ve personel bazlı satış performansı.</p></div>
+    <select onchange="window.__setRange(this.value)" style="padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <option value="all" ${state.dashboardRange==='all'?'selected':''}>Tüm zamanlar</option>
+      <option value="today" ${state.dashboardRange==='today'?'selected':''}>Bugün</option>
+      <option value="week" ${state.dashboardRange==='week'?'selected':''}>Son 7 gün</option>
+      <option value="month" ${state.dashboardRange==='month'?'selected':''}>Son 30 gün</option>
+    </select>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">Toplam kayıt</div><div class="kpi-value">${total}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Satış sayısı</div><div class="kpi-value" style="color:var(--success);">${sold}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Toplam ciro</div><div class="kpi-value gold">${money(revenue)}</div></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Bu ayki kota durumu (${currentMonthKey()})</h3>
+    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
+      <span>${money(monthTotal)} / ${money(quota)}</span>
+      <span>%${quotaPct}</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${quotaPct}%;"></div></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Personel prim durumu (bu ay)</h3>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Personel</th><th>Bu ayki ciro</th><th>Katkı %</th><th>Prim hakkı</th><th>Prim tutarı</th></tr></thead>
+      <tbody>
+        ${primRows.map(p=>`
+          <tr>
+            <td>${p.name}</td>
+            <td>${money(p.own)}</td>
+            <td>%${p.contribPct.toFixed(1)}</td>
+            <td>${p.eligible ? '<span class="badge eligible">Hak kazandı</span>' : '<span class="badge noteligible">Henüz yok</span>'}</td>
+            <td>${p.eligible ? money(p.commission) : '-'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    </div>
+    <div class="helper-text">Prim hakkı için gereken minimum katkı: %${BUSINESS.minContributionPercent}. Prim oranı: %${BUSINESS.commissionPercent}. Bu ayarları Ayarlar sayfasından değiştirebilirsin.</div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="chart-card">
+      <h3>Dönüşüm oranı</h3>
+      <div class="gauge-wrap">
+        <svg width="130" height="130" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#3A3542" stroke-width="12"/>
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#C9A15A" stroke-width="12"
+            stroke-dasharray="${2*Math.PI*58}" stroke-dashoffset="${2*Math.PI*58*(1-conv/100)}"
+            stroke-linecap="round" transform="rotate(-90 70 70)"/>
+          <text x="70" y="66" text-anchor="middle" class="gauge-num">${conv}%</text>
+          <text x="70" y="86" text-anchor="middle" class="gauge-label">dönüşüm</text>
+        </svg>
+        <div style="font-size:13px; color:var(--text-muted); max-width:200px;">${total} kayıttan ${sold} tanesi satışa dönüştü.</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Ödeme şekli dağılımı</h3>
+      <div style="position:relative; height:180px;"><canvas id="chartPayment"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="chart-card">
+      <h3>İletişim kanalı dağılımı</h3>
+      <div style="position:relative; height:220px;"><canvas id="chartChannel"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Hizmet vs ürün cirosu</h3>
+      <div style="position:relative; height:220px;"><canvas id="chartServiceProduct"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Personel performansı</h3>
+    <div style="position:relative; height:${Math.max(state.users.length*50+80,180)}px;"><canvas id="chartStaff"></canvas></div>
+  </div>
+  `;
+}
+window.__setRange = function(v){ state.dashboardRange = v; render(); }
+
+function renderCharts(){
+  const recs = recordsInRange();
+  Object.values(state.charts).forEach(c=>c && c.destroy());
+  state.charts = {};
+
+  const gold = '#C9A15A', rose='#B85C7A', muted='#A39CAA', border='#3A3542';
+
+  const cash = recs.filter(r=>r.purchased && r.payment==='Nakit').length;
+  const card = recs.filter(r=>r.purchased && r.payment==='Kredi Kartı').length;
+  if(document.getElementById('chartPayment')){
+    state.charts.payment = new Chart(document.getElementById('chartPayment'), {
+      type:'doughnut',
+      data:{ labels:['Nakit','Kredi Kartı'], datasets:[{ data:[cash,card], backgroundColor:[gold,rose], borderColor:'#211E25', borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  const channelCounts = CHANNELS.map(c=>recs.filter(r=>r.channel===c).length);
+  if(document.getElementById('chartChannel')){
+    state.charts.channel = new Chart(document.getElementById('chartChannel'), {
+      type:'bar',
+      data:{ labels:CHANNELS, datasets:[{ label:'Kayıt', data:channelCounts, backgroundColor:gold, borderRadius:4, maxBarThickness:34 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ color:muted, precision:0 }, grid:{ color:border } }, x:{ ticks:{ color:muted }, grid:{ display:false } } } }
+    });
+  }
+
+  const serviceRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.services||[]).reduce((a,x)=>a+(x.price||0),0), 0);
+  const productRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.products||[]).reduce((a,x)=>a+(x.price||0),0), 0);
+  if(document.getElementById('chartServiceProduct')){
+    state.charts.serviceProduct = new Chart(document.getElementById('chartServiceProduct'), {
+      type:'doughnut',
+      data:{ labels:['Hizmet','Ürün'], datasets:[{ data:[serviceRevenue,productRevenue], backgroundColor:[gold,rose], borderColor:'#211E25', borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+    });
+  }
+
+  const staffLabels = state.users.map(u=>u.name);
+  const staffSales = state.users.map(u=>recs.filter(r=>r.staffUsername===u.username && r.purchased).length);
+  const staffRevenue = state.users.map(u=>recs.filter(r=>r.staffUsername===u.username && r.purchased).reduce((s,r)=>s+r.amount,0));
+  if(document.getElementById('chartStaff')){
+    state.charts.staff = new Chart(document.getElementById('chartStaff'), {
+      type:'bar',
+      data:{ labels:staffLabels, datasets:[
+        { label:'Satış adedi', data:staffSales, backgroundColor:gold, borderRadius:4, maxBarThickness:22 },
+        { label:'Ciro (₺)', data:staffRevenue, backgroundColor:rose, borderRadius:4, maxBarThickness:22 }
+      ]},
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+        scales:{ x:{ beginAtZero:true, ticks:{ color:muted }, grid:{ color:border } }, y:{ ticks:{ color:muted }, grid:{ display:false } } } }
+    });
+  }
+}
+
+/* ================= SETTINGS VIEW ================= */
+function renderSettingsView(){
+  const userRows = state.users.map(u=>`
+    <div class="user-row">
+      <div>
+        <div style="font-size:14px;">${u.name} ${u.role==='admin' ? '<span style="color:var(--gold); font-size:11px;">· Yönetici</span>' : ''}</div>
+        <div style="font-size:12.5px; color:var(--text-faint);">@${u.username}</div>
+      </div>
+      <div>
+        <button class="icon-btn" onclick="openUserModal('${u.username}')">Düzenle</button>
+        ${u.username !== state.currentUser.username ? `<button class="icon-btn danger" onclick="removeUser('${u.username}')">Sil</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  const channelChips = CHANNELS.map((c,i)=>`
+    <span class="chip selected" style="display:inline-flex; align-items:center; gap:8px;">
+      ${c}<span onclick="removeListItem('channels',${i})" style="cursor:pointer; color:var(--danger); font-size:12px;">✕</span>
+    </span>`).join('');
+
+  const servicePriceRows = SERVICES.map((s,i)=>`
+    <div class="price-row">
+      <div class="price-row-name">${s.name}</div>
+      <div class="price-row-controls">
+        <input type="number" min="0" value="${s.price}" onchange="updatePrice('services',${i}, this.value)">
+        <button class="icon-btn danger" onclick="removePriceItem('services',${i})">Sil</button>
+      </div>
+    </div>`).join('') || '<div class="helper-text">Henüz hizmet eklenmedi.</div>';
+
+  const productPriceRows = PRODUCTS.map((p,i)=>`
+    <div class="price-row">
+      <div class="price-row-name">${p.name}</div>
+      <div class="price-row-controls">
+        <input type="number" min="0" value="${p.price}" onchange="updatePrice('products',${i}, this.value)">
+        <button class="icon-btn danger" onclick="removePriceItem('products',${i})">Sil</button>
+      </div>
+    </div>`).join('') || '<div class="helper-text">Henüz ürün eklenmedi.</div>';
+
+  return `
+  <div class="page-header">
+    <div><h1>Ayarlar</h1><p>Personel, fiyat listesi, kota ve prim ayarlarını yönet.</p></div>
+    <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="openUserModal(null)">+ Yeni personel</button>
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">Personel hesapları</div>
+    ${userRows}
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">Kota ve prim ayarları</div>
+    <div class="grid-2" style="margin-bottom:6px;">
+      <div class="field"><label>Aylık merkez kota hedefi (₺)</label><input id="qMonthlyQuota" type="number" min="0" value="${BUSINESS.monthlyQuota}"></div>
+      <div class="field"><label>Prim hakkı için min. katkı (%)</label><input id="qMinContrib" type="number" min="0" max="100" value="${BUSINESS.minContributionPercent}"></div>
+    </div>
+    <div class="field" style="max-width:240px;"><label>Prim oranı (%)</label><input id="qCommission" type="number" min="0" max="100" value="${BUSINESS.commissionPercent}"></div>
+    <button class="btn secondary" style="width:auto; padding:10px 18px; margin-top:10px;" onclick="saveBusinessSettings()">Kaydet</button>
+    <div class="helper-text">Kota her ay değişebileceği için bu tutarı ay başında güncellemen yeterli — geçmiş kayıtlar etkilenmez, hesaplama her zaman güncel değeri kullanır.</div>
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">Hizmet fiyat listesi</div>
+    ${servicePriceRows}
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <input id="newServiceName" placeholder="Hizmet adı" style="flex:2; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <input id="newServicePrice" type="number" min="0" placeholder="Fiyat ₺" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <button class="icon-btn" onclick="addPriceItem('services')">+ Ekle</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">Ürün fiyat listesi</div>
+    ${productPriceRows}
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <input id="newProductName" placeholder="Ürün adı" style="flex:2; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <input id="newProductPrice" type="number" min="0" placeholder="Fiyat ₺" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <button class="icon-btn" onclick="addPriceItem('products')">+ Ekle</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">İletişim kanalı seçenekleri</div>
+    <div class="chip-group" style="margin-bottom:14px;">${channelChips}</div>
+    <div style="display:flex; gap:8px;">
+      <input id="newChannelInput" placeholder="Yeni kanal adı, örn. WhatsApp" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <button class="icon-btn" onclick="addListItem('channels')">+ Ekle</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px; margin-bottom:18px;">
+    <div class="form-section-title">Yedekleme</div>
+    <p style="font-size:13px; color:var(--text-muted); margin:0 0 16px 0;">Güncelleme öncesi verini indir, sonra geri yükle.</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="exportData()">Verileri indir (.json)</button>
+      <label class="btn secondary" style="width:auto; padding:10px 18px; display:inline-flex; align-items:center;">
+        Verileri geri yükle
+        <input type="file" accept="application/json" style="display:none;" onchange="importData(event)">
+      </label>
+    </div>
+  </div>
+
+  <div class="login-hint" style="max-width:560px;">
+    Not: bu sistemdeki şifreler Firestore'da düz metin olarak tutuluyor, banka düzeyinde güvenlik sağlamaz.
+    Bu linki yalnızca güvendiğin personelle paylaş.
+  </div>
+  `;
+}
+window.openUserModal = function(username){
+  const editing = username ? state.users.find(u=>u.username===username) : null;
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('modalCard').innerHTML = `
+    <h3>${editing ? 'Personeli düzenle' : 'Yeni personel ekle'}</h3>
+    <div class="field"><label>Ad Soyad</label><input id="mName" value="${editing?editing.name:''}"></div>
+    <div class="field"><label>Kullanıcı adı</label><input id="mUsername" value="${editing?editing.username:''}" ${editing?'disabled':''}></div>
+    <div class="field"><label>Şifre</label><input id="mPassword" type="text" value="${editing?editing.password:''}"></div>
+    <div class="field"><label>Rol</label>
+      <select id="mRole">
+        <option value="staff" ${editing && editing.role==='staff'?'selected':''}>Personel</option>
+        <option value="admin" ${editing && editing.role==='admin'?'selected':''}>Yönetici</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button class="btn secondary" onclick="closeModal()">Vazgeç</button>
+      <button class="btn" onclick="saveUserModal(${editing?`'${editing.username}'`:'null'})">Kaydet</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+}
+window.closeModal = function(){ document.getElementById('modalOverlay').classList.remove('show'); }
+window.saveUserModal = async function(editingUsername){
+  const name = document.getElementById('mName').value.trim();
+  const username = document.getElementById('mUsername').value.trim();
+  const password = document.getElementById('mPassword').value;
+  const role = document.getElementById('mRole').value;
+  if(!name || !username || !password){ showToast('Tüm alanları doldur.'); return; }
+  try{
+    if(editingUsername){
+      await setDoc(doc(db,'users',editingUsername), { name, password, role });
+    } else {
+      if(state.users.find(x=>x.username===username)){ showToast('Bu kullanıcı adı zaten var.'); return; }
+      await setDoc(doc(db,'users',username), { name, password, role });
+    }
+    closeModal();
+    showToast('Kaydedildi.');
+  }catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
+}
+window.removeUser = async function(username){
+  try{ await deleteDoc(doc(db,'users',username)); showToast('Personel silindi.'); }
+  catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
+}
+
+/* ================= LISTE / FİYAT AYARLARI ================= */
+window.addListItem = async function(type){
+  const inputId = 'newChannelInput';
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if(!val) return;
+  if(CHANNELS.includes(val)){ showToast('Bu kanal zaten var.'); return; }
+  CHANNELS = [...CHANNELS, val];
+  await saveConfig();
+  showToast('Eklendi.');
+  render();
+}
+window.removeListItem = async function(type, index){
+  CHANNELS = CHANNELS.filter((_,i)=>i!==index);
+  await saveConfig();
+  showToast('Kaldırıldı.');
+  render();
+}
+window.addPriceItem = async function(type){
+  const nameId = type==='services' ? 'newServiceName' : 'newProductName';
+  const priceId = type==='services' ? 'newServicePrice' : 'newProductPrice';
+  const name = document.getElementById(nameId).value.trim();
+  const price = parseFloat(document.getElementById(priceId).value);
+  if(!name || isNaN(price) || price < 0){ showToast('Ad ve geçerli bir fiyat gir.'); return; }
+  if(type==='services'){
+    if(SERVICES.some(s=>s.name===name)){ showToast('Bu hizmet zaten var.'); return; }
+    SERVICES = [...SERVICES, {name, price}];
+  } else {
+    if(PRODUCTS.some(p=>p.name===name)){ showToast('Bu ürün zaten var.'); return; }
+    PRODUCTS = [...PRODUCTS, {name, price}];
+  }
+  await saveConfig();
+  showToast('Eklendi.');
+  render();
+}
+window.removePriceItem = async function(type, index){
+  if(type==='services'){ SERVICES = SERVICES.filter((_,i)=>i!==index); }
+  else { PRODUCTS = PRODUCTS.filter((_,i)=>i!==index); }
+  await saveConfig();
+  showToast('Kaldırıldı.');
+  render();
+}
+window.updatePrice = async function(type, index, value){
+  const price = parseFloat(value);
+  if(isNaN(price) || price < 0){ showToast('Geçerli bir fiyat gir.'); render(); return; }
+  if(type==='services'){ SERVICES[index] = { ...SERVICES[index], price }; }
+  else { PRODUCTS[index] = { ...PRODUCTS[index], price }; }
+  await saveConfig();
+  showToast('Fiyat güncellendi.');
+}
+window.saveBusinessSettings = async function(){
+  const monthlyQuota = parseFloat(document.getElementById('qMonthlyQuota').value) || 0;
+  const minContributionPercent = parseFloat(document.getElementById('qMinContrib').value) || 0;
+  const commissionPercent = parseFloat(document.getElementById('qCommission').value) || 0;
+  BUSINESS = { monthlyQuota, minContributionPercent, commissionPercent };
+  await saveBusiness();
+  showToast('Kota ve prim ayarları kaydedildi.');
+  render();
+}
+
+/* ================= BACKUP ================= */
+window.exportData = function(){
+  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, services: SERVICES, products: PRODUCTS, business: BUSINESS };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'gamze-polat-beauty-yedek-' + todayISO() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Yedek indirildi.');
+}
+window.importData = function(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.users) || !Array.isArray(data.records)) throw new Error('invalid');
+      state.users = data.users;
+      state.records = data.records;
+      if(Array.isArray(data.channels)) CHANNELS = data.channels;
+      if(Array.isArray(data.services)) SERVICES = data.services;
+      if(Array.isArray(data.products)) PRODUCTS = data.products;
+      if(data.business) BUSINESS = data.business;
+      for(const u of state.users){ await setDoc(doc(db,'users',u.username), { name:u.name, password:u.password, role:u.role }); }
+      await saveConfig();
+      await saveBusiness();
+      showToast('Veriler geri yüklendi.');
+      render();
+    }catch(err){ showToast('Dosya okunamadı, geçerli bir yedek dosyası seç.'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ================= INIT ================= */
+;(async function init(){
+  try{
+    subscribeUsers();
+    subscribeRecords();
+    subscribeConfig();
+    subscribeBusiness();
+    await seedUsersIfEmpty();
+  }catch(e){
+    setConn(false);
+    document.getElementById('loginSub').textContent = 'Bağlantı kurulamadı.';
+  }
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') window.handleLogin(); });
+})();
+</script>
+</body>
+</html>
