@@ -88,7 +88,7 @@
   .sync-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:6px; }
   .sync-dot.off{ background:var(--danger); }
 
-  .main{ flex:1; padding:32px 40px; max-width:1200px; width:100%; }
+  .main{ flex:1; padding:32px 40px; width:100%; }
   .page-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:26px; flex-wrap:wrap; gap:12px; }
   .page-header h1{ font-size:25px; margin:0; }
   .page-header p{ color:var(--text-muted); font-size:13.5px; margin:4px 0 0 0; }
@@ -550,7 +550,7 @@ function renderNewView(){
   <div class="page-header">
     <div><h1>Yeni kayıt</h1><p>İletişime geçen kişinin bilgilerini gir.</p></div>
   </div>
-  <div class="card" style="max-width:640px;">
+  <div class="card">
     <div class="form-section-title">İletişim kanalı</div>
     <div class="chip-group" style="margin-bottom:22px;">${channelChips}</div>
 
@@ -560,11 +560,11 @@ function renderNewView(){
     <div class="form-section-title">Satılan ürün(ler)</div>
     <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
 
-    <div class="grid-2" style="margin-bottom:18px;">
+    <div class="grid-3" style="margin-bottom:22px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
       <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="handlePhoneInput(this)" inputmode="numeric" maxlength="11" placeholder="05xx xxx xx xx"></div>
+      <div class="field"><label>Tarih</label><input id="fDate" type="date" value="${r.date}" onchange="state.newRecord.date=this.value"></div>
     </div>
-    <div class="field" style="max-width:200px; margin-bottom:22px;"><label>Tarih</label><input id="fDate" type="date" value="${r.date}" onchange="state.newRecord.date=this.value"></div>
 
     <div class="divider"></div>
 
@@ -993,12 +993,12 @@ function renderSettingsView(){
     <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="openUserModal(null)">+ Yeni personel</button>
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Personel hesapları</div>
     ${userRows}
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Kota ve prim ayarları</div>
     <div class="grid-2" style="margin-bottom:6px;">
       <div class="field"><label>Aylık merkez kota hedefi (₺)</label><input id="qMonthlyQuota" type="number" min="0" value="${BUSINESS.monthlyQuota}"></div>
@@ -1009,7 +1009,7 @@ function renderSettingsView(){
     <div class="helper-text">Kota her ay değişebileceği için bu tutarı ay başında güncellemen yeterli — geçmiş kayıtlar etkilenmez, hesaplama her zaman güncel değeri kullanır.</div>
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Hizmet fiyat listesi</div>
     ${servicePriceRows}
     <div style="display:flex; gap:8px; margin-top:14px;">
@@ -1019,7 +1019,7 @@ function renderSettingsView(){
     </div>
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Ürün fiyat listesi</div>
     ${productPriceRows}
     <div style="display:flex; gap:8px; margin-top:14px;">
@@ -1029,7 +1029,7 @@ function renderSettingsView(){
     </div>
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">İletişim kanalı seçenekleri</div>
     <div class="chip-group" style="margin-bottom:14px;">${channelChips}</div>
     <div style="display:flex; gap:8px;">
@@ -1038,7 +1038,7 @@ function renderSettingsView(){
     </div>
   </div>
 
-  <div class="card" style="max-width:560px; margin-bottom:18px;">
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Yedekleme</div>
     <p style="font-size:13px; color:var(--text-muted); margin:0 0 16px 0;">Güncelleme öncesi verini indir, sonra geri yükle.</p>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -1050,7 +1050,7 @@ function renderSettingsView(){
     </div>
   </div>
 
-  <div class="login-hint" style="max-width:560px;">
+  <div class="login-hint" style="max-width:900px;">
     Not: bu sistemdeki şifreler Firestore'da düz metin olarak tutuluyor, banka düzeyinde güvenlik sağlamaz.
     Bu linki yalnızca güvendiğin personelle paylaş.
   </div>
