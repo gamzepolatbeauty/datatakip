@@ -525,7 +525,7 @@ function renderNewView(){
 
     <div class="grid-2" style="margin-bottom:18px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
-      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="state.newRecord.customerPhone=this.value" placeholder="05xx xxx xx xx"></div>
+      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="handlePhoneInput(this)" inputmode="numeric" maxlength="11" placeholder="05xx xxx xx xx"></div>
     </div>
     <div class="field" style="max-width:200px; margin-bottom:22px;"><label>Tarih</label><input id="fDate" type="date" value="${r.date}" onchange="state.newRecord.date=this.value"></div>
 
@@ -558,6 +558,11 @@ function renderNewView(){
   </div>
   `;
 }
+window.handlePhoneInput = function(el){
+  let digits = el.value.replace(/\D/g, '').slice(0, 11);
+  el.value = digits;
+  state.newRecord.customerPhone = digits;
+}
 window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
   syncNewRecordInputs();
@@ -587,6 +592,10 @@ window.submitRecord = async function(){
   if(r.services.length===0 && r.products.length===0){ showToast('Lütfen en az bir hizmet veya ürün seç.'); return; }
   if(r.purchased===null){ showToast('Satış durumunu belirt.'); return; }
   if(r.purchased && !r.payment){ showToast('Ödeme şeklini seç.'); return; }
+  if(r.customerPhone && !/^0\d{10}$/.test(r.customerPhone)){
+    showToast('Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn. 05xx xxx xx xx).');
+    return;
+  }
 
   const record = {
     date: r.date || todayISO(),
