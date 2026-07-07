@@ -245,7 +245,7 @@
       </div>
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Yeni kayıt</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Kayıtlar</span></button>
-      <button class="nav-item" data-view="dashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
+      <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
       <div class="sidebar-footer">
         <div class="user-chip">
@@ -264,7 +264,7 @@
   <div class="mobile-tabbar">
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Yeni</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Kayıtlar</button>
-    <button class="nav-item" data-view="dashboard" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
+    <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
   </div>
 </div>
@@ -323,7 +323,8 @@ let state = {
   newRecord: { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' },
   recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
   dashboardRange: 'all',
-  charts: {}
+  charts: {},
+  presence: {}
 };
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
@@ -359,6 +360,34 @@ async function seedUsersIfEmpty(){
 }
 
 let usersLoadedOnce=false, recordsLoadedOnce=false, configLoadedOnce=false, businessLoadedOnce=false;
+let presenceInterval = null;
+function subscribePresence(){
+  onSnapshot(collection(db,'presence'), snap=>{
+    state.presence = {};
+    snap.docs.forEach(d=>{ state.presence[d.id] = d.data(); });
+    if(state.currentUser && state.view==='dashboard') render();
+  }, err=>{});
+}
+async function updatePresence(){
+  if(!state.currentUser) return;
+  try{ await setDoc(doc(db,'presence', state.currentUser.username), { name: state.currentUser.name, lastActive: new Date().toISOString() }); }
+  catch(e){}
+}
+function isOnline(username){
+  const p = state.presence[username];
+  if(!p || !p.lastActive) return false;
+  return (Date.now() - new Date(p.lastActive).getTime()) < 60000;
+}
+function lastActiveLabel(username){
+  const p = state.presence[username];
+  if(!p || !p.lastActive) return 'Hiç görülmedi';
+  const diffMin = Math.floor((Date.now() - new Date(p.lastActive).getTime()) / 60000);
+  if(diffMin < 1) return 'Şu anda aktif';
+  if(diffMin < 60) return diffMin + ' dakika önce';
+  const diffH = Math.floor(diffMin/60);
+  if(diffH < 24) return diffH + ' saat önce';
+  return Math.floor(diffH/24) + ' gün önce';
+}
 function onDataReady(){
   if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && businessLoadedOnce && !state.ready){
     state.ready = true;
@@ -462,8 +491,12 @@ window.handleLogin = function(){
   document.getElementById('app').style.display = 'block';
   renderShellForUser();
   setView(found.role === 'admin' ? 'dashboard' : 'new');
+  updatePresence();
+  presenceInterval = setInterval(updatePresence, 25000);
 }
 window.handleLogout = function(){
+  if(presenceInterval){ clearInterval(presenceInterval); presenceInterval = null; }
+  if(state.currentUser){ deleteDoc(doc(db,'presence', state.currentUser.username)).catch(()=>{}); }
   state.currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -477,10 +510,14 @@ function renderShellForUser(){
   document.getElementById('userRole').textContent = u.role === 'admin' ? 'Yönetici' : 'Personel';
   document.getElementById('navSettings').style.display = u.role === 'admin' ? 'flex' : 'none';
   document.getElementById('navSettingsMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
+  document.getElementById('navDashboard').style.display = u.role === 'admin' ? 'flex' : 'none';
+  document.getElementById('navDashboardMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
 }
 
 /* ================= NAV ================= */
 window.setView = function(view){
+  if(view === 'dashboard' && (!state.currentUser || state.currentUser.role !== 'admin')) view = 'new';
+  if(view === 'settings' && (!state.currentUser || state.currentUser.role !== 'admin')) view = 'new';
   state.view = view;
   document.querySelectorAll('.nav-item').forEach(el=>{
     el.classList.toggle('active', el.dataset.view === view);
@@ -763,6 +800,17 @@ function renderDashboardView(){
       <option value="week" ${state.dashboardRange==='week'?'selected':''}>Son 7 gün</option>
       <option value="month" ${state.dashboardRange==='month'?'selected':''}>Son 30 gün</option>
     </select>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Aktif personel</h3>
+    <div class="chip-group">
+      ${state.users.map(u=>`
+        <span class="chip ${isOnline(u.username)?'selected':''}" style="display:inline-flex; align-items:center; gap:8px;">
+          <span class="sync-dot ${isOnline(u.username)?'':'off'}" style="margin-right:0;"></span>
+          ${u.name}<small>${lastActiveLabel(u.username)}</small>
+        </span>`).join('')}
+    </div>
   </div>
 
   <div class="grid-3" style="margin-bottom:18px;">
@@ -1148,6 +1196,7 @@ window.importData = function(event){
     subscribeRecords();
     subscribeConfig();
     subscribeBusiness();
+    subscribePresence();
     await seedUsersIfEmpty();
   }catch(e){
     setConn(false);
