@@ -140,6 +140,21 @@
   .gauge-wrap{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
   .progress-track{ height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden; }
   .progress-fill{ height:100%; background:var(--gold); border-radius:6px; transition:width .3s; }
+  .celebrate-banner{
+    background:linear-gradient(90deg, rgba(201,161,90,0.18), rgba(184,92,122,0.18));
+    border:1px solid var(--gold); border-radius:14px; padding:18px 22px; margin-bottom:18px;
+    display:flex; align-items:center; gap:14px; font-size:14px;
+  }
+  .celebrate-banner .emoji{ font-size:28px; animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.18); } }
+  .leader-row{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); }
+  .leader-row:last-child{ border-bottom:none; }
+  .leader-rank{ width:34px; font-size:18px; text-align:center; flex-shrink:0; }
+  .leader-name{ flex:1; font-size:14px; }
+  .leader-name small{ display:block; color:var(--text-faint); font-size:11.5px; margin-top:2px; }
+  .leader-amount{ font-family:'Fraunces',serif; font-size:16px; color:var(--gold); }
+  .leader-track{ width:120px; height:7px; border-radius:4px; background:var(--surface-3); overflow:hidden; margin-left:12px; flex-shrink:0; }
+  .leader-track-fill{ height:100%; background:var(--gold); border-radius:4px; }
 
   .user-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
   .user-row:last-child{ border-bottom:none; }
@@ -248,6 +263,7 @@
         <div class="brand-name">Gamze Polat Beauty<small>Takip sistemi</small></div>
       </div>
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Yeni kayıt</span></button>
+      <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="nav-dot"></span><span class="label">Primim</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Kayıtlar</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
@@ -267,6 +283,7 @@
   <!-- Mobile bottom tab bar -->
   <div class="mobile-tabbar">
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Yeni</button>
+    <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="tab-icon">★</span>Primim</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Kayıtlar</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
@@ -533,10 +550,90 @@ window.setView = function(view){
 function render(){
   const main = document.getElementById('mainContent');
   if(state.view === 'new') main.innerHTML = renderNewView();
+  else if(state.view === 'prim') main.innerHTML = renderPrimView();
   else if(state.view === 'records') main.innerHTML = renderRecordsView();
   else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
   else if(state.view === 'settings') main.innerHTML = renderSettingsView();
   if(state.view === 'dashboard') requestAnimationFrame(renderCharts);
+}
+
+/* ================= PRİMİM VIEW (herkese açık) ================= */
+function renderPrimView(){
+  const monthRecs = recordsThisMonth();
+  const monthTotal = monthRecs.reduce((s,r)=>s+r.amount,0);
+  const quota = BUSINESS.monthlyQuota || 0;
+  const quotaPct = quota ? Math.min(100, Math.round((monthTotal/quota)*100)) : 0;
+  const thresholdAmount = quota * (BUSINESS.minContributionPercent||0) / 100;
+
+  const board = state.users.map(u=>{
+    const own = monthRecs.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
+    const contribPct = quota ? (own/quota*100) : 0;
+    const eligible = contribPct >= (BUSINESS.minContributionPercent||0);
+    const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
+    return { username:u.username, name:u.name, own, contribPct, eligible, commission };
+  }).sort((a,b)=>b.own-a.own);
+
+  const maxOwn = Math.max(1, ...board.map(b=>b.own));
+  const me = board.find(b=>b.username===state.currentUser.username) || { own:0, contribPct:0, eligible:false, commission:0 };
+  const myRank = board.findIndex(b=>b.username===state.currentUser.username) + 1;
+  const remainingToEligible = Math.max(0, thresholdAmount - me.own);
+  const medals = ['🥇','🥈','🥉'];
+
+  return `
+  <div class="page-header">
+    <div><h1>Primim</h1><p>Bu ayki (${currentMonthKey()}) şube performansı ve senin durumun.</p></div>
+  </div>
+
+  ${quotaPct>=100 ? `
+  <div class="celebrate-banner">
+    <span class="emoji">🎉</span>
+    <div><b>Şube hedefine ulaşıldı!</b> Bu ay için ${money(quota)} hedef tamamlandı — harika iş çıkardınız.</div>
+  </div>` : ''}
+  ${me.eligible ? `
+  <div class="celebrate-banner">
+    <span class="emoji">🏆</span>
+    <div><b>Tebrikler, prim hakkı kazandın!</b> Bu ayki priminiz: <b>${money(me.commission)}</b></div>
+  </div>` : ''}
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Şube hedefi</h3>
+    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
+      <span>${money(monthTotal)} / ${money(quota)}</span>
+      <span>%${quotaPct}</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${quotaPct}%;"></div></div>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">Senin cironun</div><div class="kpi-value gold">${money(me.own)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sıralaman</div><div class="kpi-value">${myRank > 0 ? '#'+myRank : '-'}${myRank>0 && myRank<=3 ? ' ' + medals[myRank-1] : ''}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${me.eligible ? 'Bu ayki primin' : 'Prime kalan tutar'}</div><div class="kpi-value" style="color:${me.eligible?'var(--success)':'var(--gold)'};">${me.eligible ? money(me.commission) : money(remainingToEligible)}</div></div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Kendi ilerlemen (prim eşiği: %${BUSINESS.minContributionPercent})</h3>
+    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
+      <span>Katkın: %${me.contribPct.toFixed(1)}</span>
+      <span>${me.eligible ? 'Hedef tamamlandı ✓' : 'Hedef: %' + BUSINESS.minContributionPercent}</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, (me.contribPct/(BUSINESS.minContributionPercent||1))*100)}%; background:${me.eligible?'var(--success)':'var(--gold)'};"></div></div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Bu ayki sıralama</h3>
+    ${board.map((b,i)=>`
+      <div class="leader-row">
+        <div class="leader-rank">${i<3 ? medals[i] : (i+1)}</div>
+        <div class="leader-name">
+          ${b.name}${b.username===state.currentUser.username ? ' <span style="color:var(--gold); font-size:11px;">(sen)</span>' : ''}
+          <small>${b.eligible ? 'Prim hakkı kazandı · ' + money(b.commission) : 'Katkı: %' + b.contribPct.toFixed(1)}</small>
+        </div>
+        <div class="leader-track"><div class="leader-track-fill" style="width:${(b.own/maxOwn*100)}%;"></div></div>
+        <div class="leader-amount">${money(b.own)}</div>
+      </div>
+    `).join('')}
+  </div>
+  `;
 }
 
 /* ================= NEW RECORD VIEW ================= */
