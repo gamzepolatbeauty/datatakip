@@ -23,6 +23,7 @@
     --text-faint: #726C7A;
     --success: #6B9E78;
     --danger: #C46A5E;
+    --info: #6C93C0;
   }
   *{box-sizing:border-box;}
   body{
@@ -693,6 +694,12 @@ function syncNewRecordInputs(){
 }
 
 /* ================= RECORDS VIEW ================= */
+function callDateColor(callDate){
+  const today = todayISO();
+  if(callDate < today) return 'var(--danger)';
+  if(callDate === today) return 'var(--success)';
+  return 'var(--info)';
+}
 function filteredRecords(){
   const f = state.recordFilters;
   const filtered = state.records.filter(r=>{
@@ -735,7 +742,7 @@ function renderRecordsView(){
     return `
     <tr>
       <td>${r.date}</td>
-      <td>${status==='pending' ? (r.callDate || '<span style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
+      <td>${status==='pending' ? (r.callDate ? `<span style="color:${callDateColor(r.callDate)}; font-weight:600;">${r.callDate}</span>` : '<span style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
       <td>${r.channel}</td>
       <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
       <td>${(r.products||[]).map(itemName).join(', ') || '-'}</td>
