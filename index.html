@@ -633,6 +633,13 @@ window.submitRecord = async function(){
     showToast('Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn. 05xx xxx xx xx).');
     return;
   }
+  if(r.customerPhone){
+    const existing = state.records.find(x=>x.customerPhone === r.customerPhone);
+    if(existing){
+      showToast('Bu telefon numarası zaten kayıtlı (' + existing.date + ', ' + (existing.customerName||'isimsiz') + '). Aynı numara tekrar kullanılamaz.');
+      return;
+    }
+  }
 
   const record = {
     date: r.date || todayISO(),
