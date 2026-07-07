@@ -244,7 +244,6 @@
         <div class="brand-name">Gamze Polat Beauty<small>Takip sistemi</small></div>
       </div>
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Yeni kayıt</span></button>
-      <button class="nav-item" data-view="sales" onclick="setView('sales')"><span class="nav-dot"></span><span class="label">Satış girişi</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Kayıtlar</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
@@ -264,7 +263,6 @@
   <!-- Mobile bottom tab bar -->
   <div class="mobile-tabbar">
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Yeni</button>
-    <button class="nav-item" data-view="sales" onclick="setView('sales')"><span class="tab-icon">₺</span>Satış</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Kayıtlar</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
@@ -319,12 +317,10 @@ const DEFAULT_USERS = [
 let state = {
   users: [],
   records: [],
-  sales: [],
   currentUser: null,
   view: 'new',
   ready: false,
   newRecord: { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' },
-  newSale: { date: todayISO(), services:[], products:[], payment:null, amount:'', note:'' },
   recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
   dashboardRange: 'all',
   charts: {},
@@ -393,7 +389,7 @@ function lastActiveLabel(username){
   return Math.floor(diffH/24) + ' gün önce';
 }
 function onDataReady(){
-  if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && businessLoadedOnce && salesLoadedOnce && !state.ready){
+  if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && businessLoadedOnce && !state.ready){
     state.ready = true;
     document.getElementById('loginBtn').disabled = false;
     document.getElementById('loginBtn').textContent = 'Giriş yap';
@@ -422,17 +418,6 @@ function subscribeRecords(){
     recordsLoadedOnce = true;
     onDataReady();
     if(state.currentUser && (state.view==='records' || state.view==='dashboard')) render();
-  }, err=>{ setConn(false); });
-}
-let salesLoadedOnce = false;
-function subscribeSales(){
-  onSnapshot(collection(db,'sales'), snap=>{
-    state.sales = snap.docs.map(d=>({ id:d.id, ...d.data() }))
-      .sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
-    setConn(true);
-    salesLoadedOnce = true;
-    onDataReady();
-    if(state.currentUser && (state.view==='sales' || state.view==='dashboard')) render();
   }, err=>{ setConn(false); });
 }
 function subscribeConfig(){
@@ -544,130 +529,10 @@ window.setView = function(view){
 function render(){
   const main = document.getElementById('mainContent');
   if(state.view === 'new') main.innerHTML = renderNewView();
-  else if(state.view === 'sales') main.innerHTML = renderSalesView();
   else if(state.view === 'records') main.innerHTML = renderRecordsView();
   else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
   else if(state.view === 'settings') main.innerHTML = renderSettingsView();
   if(state.view === 'dashboard') requestAnimationFrame(renderCharts);
-}
-
-/* ================= SATIŞ GİRİŞİ VIEW ================= */
-function recomputeSaleAmount(){
-  const total = [...state.newSale.services, ...state.newSale.products].reduce((s,x)=>s+(x.price||0),0);
-  state.newSale.amount = total;
-}
-function renderSalesView(){
-  const s = state.newSale;
-  const serviceChips = SERVICES.map(sv=>`<button class="chip ${s.services.some(x=>itemName(x)===itemName(sv))?'selected':''}" onclick="toggleSaleService('${itemName(sv)}')">${itemName(sv)}<small>${money(itemPrice(sv))}</small></button>`).join('');
-  const productChips = PRODUCTS.map(p=>`<button class="chip ${s.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleSaleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
-
-  const mySales = state.sales.filter(x=>x.staffUsername===state.currentUser.username)
-    .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
-  const monthKey = currentMonthKey();
-  const myMonthTotal = mySales.filter(x=>x.date && x.date.slice(0,7)===monthKey).reduce((sum,x)=>sum+x.amount,0);
-
-  const rows = mySales.slice(0,25).map(x=>`
-    <tr>
-      <td>${x.date}</td>
-      <td>${(x.services||[]).map(itemName).join(', ') || '-'}</td>
-      <td>${(x.products||[]).map(itemName).join(', ') || '-'}</td>
-      <td><span class="badge ${x.payment==='Nakit'?'cash':'card'}">${x.payment}</span></td>
-      <td>${money(x.amount)}</td>
-      <td><button class="icon-btn danger" onclick="deleteSale('${x.id}')">Sil</button></td>
-    </tr>
-  `).join('');
-
-  return `
-  <div class="page-header">
-    <div><h1>Satış girişi</h1><p>Bu ay yaptığın satışları buradan gir — prim hesabın buna göre yapılacak.</p></div>
-  </div>
-
-  <div class="grid-2" style="margin-bottom:18px; align-items:start;">
-    <div class="card">
-      <div class="form-section-title">Satılan hizmet(ler)</div>
-      <div class="chip-group" style="margin-bottom:22px;">${serviceChips || '<span class="helper-text">Henüz hizmet tanımlanmadı.</span>'}</div>
-
-      <div class="form-section-title">Satılan ürün(ler)</div>
-      <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı.</span>'}</div>
-
-      <div class="grid-2" style="margin-bottom:18px;">
-        <div class="field"><label>Tarih</label><input id="sDate" type="date" value="${s.date}" onchange="state.newSale.date=this.value"></div>
-        <div class="field"><label>Tutar (₺)</label><input id="sAmount" type="number" min="0" value="${s.amount}" oninput="state.newSale.amount=this.value" placeholder="0"></div>
-      </div>
-
-      <div class="form-section-title">Ödeme şekli</div>
-      <div class="toggle-group" style="margin-bottom:18px; max-width:340px;">
-        <button class="toggle-btn ${s.payment==='Nakit'?'selected yes':''}" onclick="setSalePayment('Nakit')">Nakit</button>
-        <button class="toggle-btn ${s.payment==='Kredi Kartı'?'selected yes':''}" onclick="setSalePayment('Kredi Kartı')">Kredi Kartı</button>
-      </div>
-
-      <div class="field" style="margin-bottom:14px;"><label>Not (opsiyonel)</label><input id="sNote" value="${s.note}" oninput="state.newSale.note=this.value" placeholder="Ek bilgi"></div>
-
-      <button class="btn" style="max-width:220px;" onclick="submitSale()">Satışı kaydet</button>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-label">Bu ayki toplam satışın</div>
-      <div class="kpi-value gold">${money(myMonthTotal)}</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="form-section-title">Son satışların</div>
-    ${rows ? `
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr><th>Tarih</th><th>Hizmet</th><th>Ürün</th><th>Ödeme</th><th>Tutar</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    </div>` : '<div class="empty-state">Henüz satış girişi yapmadın.</div>'}
-  </div>
-  `;
-}
-window.toggleSaleService = function(name){
-  const arr = state.newSale.services;
-  const i = arr.findIndex(x=>itemName(x)===name);
-  if(i>-1){ arr.splice(i,1); }
-  else { const found = SERVICES.find(x=>itemName(x)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
-  recomputeSaleAmount();
-  render();
-}
-window.toggleSaleProduct = function(name){
-  const arr = state.newSale.products;
-  const i = arr.findIndex(x=>itemName(x)===name);
-  if(i>-1){ arr.splice(i,1); }
-  else { const found = PRODUCTS.find(x=>itemName(x)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
-  recomputeSaleAmount();
-  render();
-}
-window.setSalePayment = function(p){ state.newSale.payment = p; render(); }
-window.submitSale = async function(){
-  const s = state.newSale;
-  if(s.services.length===0 && s.products.length===0){ showToast('En az bir hizmet veya ürün seç.'); return; }
-  if(!s.payment){ showToast('Ödeme şeklini seç.'); return; }
-  const amount = parseFloat(s.amount) || 0;
-  if(amount <= 0){ showToast('Geçerli bir tutar gir.'); return; }
-  const sale = {
-    date: s.date || todayISO(),
-    services: s.services.slice(),
-    products: s.products.slice(),
-    payment: s.payment,
-    amount,
-    note: s.note || '',
-    staffUsername: state.currentUser.username,
-    staffName: state.currentUser.name,
-    createdAt: new Date().toISOString()
-  };
-  try{
-    await addDoc(collection(db,'sales'), sale);
-    state.newSale = { date: todayISO(), services:[], products:[], payment:null, amount:'', note:'' };
-    showToast('Satış kaydedildi.');
-    render();
-  }catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
-}
-window.deleteSale = async function(id){
-  try{ await deleteDoc(doc(db,'sales',id)); showToast('Satış silindi.'); }
-  catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
 }
 
 /* ================= NEW RECORD VIEW ================= */
@@ -909,37 +774,24 @@ function recordsInRange(){
   const fromISO = from.toISOString().slice(0,10);
   return state.records.filter(r=>r.date >= fromISO);
 }
-function salesThisMonth(){
+function recordsThisMonth(){
   const mk = currentMonthKey();
-  return state.sales.filter(r=> r.date && r.date.slice(0,7)===mk);
-}
-function salesInRange(){
-  const range = state.dashboardRange;
-  if(range === 'all') return state.sales;
-  const now = new Date();
-  let from = new Date();
-  if(range==='today'){ from.setHours(0,0,0,0); }
-  else if(range==='week'){ from.setDate(now.getDate()-7); }
-  else if(range==='month'){ from.setMonth(now.getMonth()-1); }
-  const fromISO = from.toISOString().slice(0,10);
-  return state.sales.filter(r=>r.date >= fromISO);
+  return state.records.filter(r=> r.purchased && r.date && r.date.slice(0,7)===mk);
 }
 function renderDashboardView(){
   const recs = recordsInRange();
   const total = recs.length;
   const sold = recs.filter(r=>r.purchased).length;
   const conv = total ? Math.round((sold/total)*100) : 0;
+  const revenue = recs.reduce((s,r)=>s+(r.purchased?r.amount:0),0);
 
-  const salesRange = salesInRange();
-  const revenue = salesRange.reduce((s,r)=>s+r.amount,0);
-
-  const monthSales = salesThisMonth();
-  const monthTotal = monthSales.reduce((s,r)=>s+r.amount,0);
+  const monthRecs = recordsThisMonth();
+  const monthTotal = monthRecs.reduce((s,r)=>s+r.amount,0);
   const quota = BUSINESS.monthlyQuota || 0;
   const quotaPct = quota ? Math.min(100, Math.round((monthTotal/quota)*100)) : 0;
 
   const primRows = state.users.map(u=>{
-    const own = monthSales.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
+    const own = monthRecs.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
     const contribPct = quota ? (own/quota*100) : 0;
     const eligible = contribPct >= (BUSINESS.minContributionPercent||0);
     const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
@@ -969,9 +821,9 @@ function renderDashboardView(){
   </div>
 
   <div class="grid-3" style="margin-bottom:18px;">
-    <div class="kpi-card"><div class="kpi-label">Toplam iletişim (lead)</div><div class="kpi-value">${total}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Kayıt olan (dönüşen)</div><div class="kpi-value" style="color:var(--success);">${sold}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Toplam satış cirosu</div><div class="kpi-value gold">${money(revenue)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Toplam kayıt</div><div class="kpi-value">${total}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Satış sayısı</div><div class="kpi-value" style="color:var(--success);">${sold}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Toplam ciro</div><div class="kpi-value gold">${money(revenue)}</div></div>
   </div>
 
   <div class="chart-card" style="margin-bottom:18px;">
@@ -1046,14 +898,13 @@ window.__setRange = function(v){ state.dashboardRange = v; render(); }
 
 function renderCharts(){
   const recs = recordsInRange();
-  const salesData = salesInRange();
   Object.values(state.charts).forEach(c=>c && c.destroy());
   state.charts = {};
 
   const gold = '#C9A15A', rose='#B85C7A', muted='#A39CAA', border='#3A3542';
 
-  const cash = salesData.filter(r=>r.payment==='Nakit').length;
-  const card = salesData.filter(r=>r.payment==='Kredi Kartı').length;
+  const cash = recs.filter(r=>r.purchased && r.payment==='Nakit').length;
+  const card = recs.filter(r=>r.purchased && r.payment==='Kredi Kartı').length;
   if(document.getElementById('chartPayment')){
     state.charts.payment = new Chart(document.getElementById('chartPayment'), {
       type:'doughnut',
@@ -1072,8 +923,8 @@ function renderCharts(){
     });
   }
 
-  const serviceRevenue = salesData.reduce((s,r)=>s + (r.services||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
-  const productRevenue = salesData.reduce((s,r)=>s + (r.products||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
+  const serviceRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.services||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
+  const productRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.products||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
   if(document.getElementById('chartServiceProduct')){
     state.charts.serviceProduct = new Chart(document.getElementById('chartServiceProduct'), {
       type:'doughnut',
@@ -1083,8 +934,8 @@ function renderCharts(){
   }
 
   const staffLabels = state.users.map(u=>u.name);
-  const staffSales = state.users.map(u=>salesData.filter(r=>r.staffUsername===u.username).length);
-  const staffRevenue = state.users.map(u=>salesData.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0));
+  const staffSales = state.users.map(u=>recs.filter(r=>r.staffUsername===u.username && r.purchased).length);
+  const staffRevenue = state.users.map(u=>recs.filter(r=>r.staffUsername===u.username && r.purchased).reduce((s,r)=>s+r.amount,0));
   if(document.getElementById('chartStaff')){
     state.charts.staff = new Chart(document.getElementById('chartStaff'), {
       type:'bar',
@@ -1311,7 +1162,7 @@ window.saveBusinessSettings = async function(){
 
 /* ================= BACKUP ================= */
 window.exportData = function(){
-  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, sales: state.sales, channels: CHANNELS, services: SERVICES, products: PRODUCTS, business: BUSINESS };
+  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, services: SERVICES, products: PRODUCTS, business: BUSINESS };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1330,7 +1181,6 @@ window.importData = function(event){
       if(!Array.isArray(data.users) || !Array.isArray(data.records)) throw new Error('invalid');
       state.users = data.users;
       state.records = data.records;
-      if(Array.isArray(data.sales)) state.sales = data.sales;
       if(Array.isArray(data.channels)) CHANNELS = data.channels;
       if(Array.isArray(data.services)) SERVICES = data.services;
       if(Array.isArray(data.products)) PRODUCTS = data.products;
@@ -1351,7 +1201,6 @@ window.importData = function(event){
   try{
     subscribeUsers();
     subscribeRecords();
-    subscribeSales();
     subscribeConfig();
     subscribeBusiness();
     subscribePresence();
