@@ -107,6 +107,9 @@
   .toggle-btn{ flex:1; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13.5px; }
   .toggle-btn.selected.yes{ background:rgba(107,158,120,0.16); border-color:var(--success); color:var(--success); }
   .toggle-btn.selected.no{ background:rgba(196,106,94,0.16); border-color:var(--danger); color:var(--danger); }
+  .toggle-btn.selected.pending{ background:rgba(201,161,90,0.16); border-color:var(--gold); color:var(--gold); }
+  .badge.pending{ background:rgba(201,161,90,0.16); color:var(--gold); }
+  .badge.negative{ background:rgba(196,106,94,0.16); color:var(--danger); }
   .divider{ height:1px; background:var(--border); margin:22px 0; }
   .helper-text{ font-size:12px; color:var(--text-faint); margin-top:8px; }
 
@@ -320,7 +323,7 @@ let state = {
   currentUser: null,
   view: 'new',
   ready: false,
-  newRecord: { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' },
+  newRecord: { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' },
   recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
   dashboardRange: 'all',
   charts: {},
@@ -569,12 +572,19 @@ function renderNewView(){
     <div class="divider"></div>
 
     <div class="form-section-title">Satış durumu</div>
-    <div class="toggle-group" style="margin-bottom:18px; max-width:340px;">
-      <button class="toggle-btn ${r.purchased===true?'selected yes':''}" onclick="setPurchased(true)">Satış yapıldı</button>
-      <button class="toggle-btn ${r.purchased===false?'selected no':''}" onclick="setPurchased(false)">Satış yapılmadı</button>
+    <div class="toggle-group" style="margin-bottom:18px; max-width:520px;">
+      <button class="toggle-btn ${r.followStatus==='sold'?'selected yes':''}" onclick="setFollowStatus('sold')">Satış yapıldı</button>
+      <button class="toggle-btn ${r.followStatus==='pending'?'selected pending':''}" onclick="setFollowStatus('pending')">Aranacak</button>
+      <button class="toggle-btn ${r.followStatus==='negative'?'selected no':''}" onclick="setFollowStatus('negative')">Olumsuz</button>
     </div>
 
-    ${r.purchased===true ? `
+    ${r.followStatus==='pending' ? `
+    <div class="field" style="max-width:200px; margin-bottom:18px;">
+      <label>Arama tarihi (zorunlu)</label>
+      <input id="fCallDate" type="date" value="${r.callDate}" onchange="state.newRecord.callDate=this.value">
+    </div>` : ''}
+
+    ${r.followStatus==='sold' ? `
     <div class="grid-2" style="margin-bottom:8px;">
       <div class="field">
         <label>Ödeme şekli</label>
@@ -619,7 +629,13 @@ window.toggleProduct = function(name){
   recomputeAmount();
   render();
 }
-window.setPurchased = function(v){ syncNewRecordInputs(); state.newRecord.purchased = v; if(!v){ state.newRecord.payment=null; } render(); }
+window.setFollowStatus = function(v){
+  syncNewRecordInputs();
+  state.newRecord.followStatus = v;
+  if(v !== 'sold'){ state.newRecord.payment=null; }
+  if(v !== 'pending'){ state.newRecord.callDate=''; }
+  render();
+}
 window.setPayment = function(p){ syncNewRecordInputs(); state.newRecord.payment = p; render(); }
 
 window.submitRecord = async function(){
@@ -627,8 +643,9 @@ window.submitRecord = async function(){
   const r = state.newRecord;
   if(!r.channel){ showToast('Lütfen iletişim kanalını seç.'); return; }
   if(r.services.length===0 && r.products.length===0){ showToast('Lütfen en az bir hizmet veya ürün seç.'); return; }
-  if(r.purchased===null){ showToast('Satış durumunu belirt.'); return; }
-  if(r.purchased && !r.payment){ showToast('Ödeme şeklini seç.'); return; }
+  if(!r.followStatus){ showToast('Satış durumunu seç: Satış yapıldı, Aranacak ya da Olumsuz.'); return; }
+  if(r.followStatus==='sold' && !r.payment){ showToast('Ödeme şeklini seç.'); return; }
+  if(r.followStatus==='pending' && !r.callDate){ showToast('Aranacak olarak işaretlediğin için bir arama tarihi girmen gerekiyor.'); return; }
   if(r.customerPhone && !/^0\d{10}$/.test(r.customerPhone)){
     showToast('Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn. 05xx xxx xx xx).');
     return;
@@ -648,9 +665,11 @@ window.submitRecord = async function(){
     products: r.products.slice(),
     customerName: r.customerName || '',
     customerPhone: r.customerPhone || '',
-    purchased: r.purchased,
-    payment: r.purchased ? r.payment : null,
-    amount: r.purchased ? (parseFloat(r.amount)||0) : 0,
+    followStatus: r.followStatus,
+    purchased: r.followStatus === 'sold',
+    callDate: r.followStatus === 'pending' ? r.callDate : '',
+    payment: r.followStatus === 'sold' ? r.payment : null,
+    amount: r.followStatus === 'sold' ? (parseFloat(r.amount)||0) : 0,
     note: r.note || '',
     staffUsername: state.currentUser.username,
     staffName: state.currentUser.name,
@@ -658,7 +677,7 @@ window.submitRecord = async function(){
   };
   try{
     await addDoc(collection(db,'records'), record);
-    state.newRecord = { date: todayISO(), channel:null, services:[], products:[], purchased:null, payment:null, amount:'', customerName:'', customerPhone:'', note:'' };
+    state.newRecord = { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
     showToast('Kayıt eklendi.');
     render();
   }catch(e){ showToast('Kayıt eklenemedi, bağlantıyı kontrol et.'); }
@@ -668,6 +687,7 @@ function syncNewRecordInputs(){
   if(g('fCustomerName')) state.newRecord.customerName = g('fCustomerName').value;
   if(g('fCustomerPhone')) state.newRecord.customerPhone = g('fCustomerPhone').value;
   if(g('fDate')) state.newRecord.date = g('fDate').value;
+  if(g('fCallDate')) state.newRecord.callDate = g('fCallDate').value;
   if(g('fAmount')) state.newRecord.amount = g('fAmount').value;
   if(g('fNote')) state.newRecord.note = g('fNote').value;
 }
@@ -675,12 +695,12 @@ function syncNewRecordInputs(){
 /* ================= RECORDS VIEW ================= */
 function filteredRecords(){
   const f = state.recordFilters;
-  return state.records.filter(r=>{
+  const filtered = state.records.filter(r=>{
     if(f.channel && r.channel !== f.channel) return false;
     if(f.service && !r.services.some(s=>itemName(s)===f.service)) return false;
     if(f.staff && r.staffUsername !== f.staff) return false;
-    if(f.purchased === 'yes' && !r.purchased) return false;
-    if(f.purchased === 'no' && r.purchased) return false;
+    if(f.purchased === 'yes' && r.followStatus!=='sold') return false;
+    if(f.purchased === 'no' && r.followStatus==='sold') return false;
     if(f.from && r.date < f.from) return false;
     if(f.to && r.date > f.to) return false;
     if(f.q){
@@ -690,29 +710,48 @@ function filteredRecords(){
     }
     return true;
   });
+  return filtered.sort((a,b)=>{
+    const aPending = a.followStatus==='pending' || (!a.followStatus && !a.purchased);
+    const bPending = b.followStatus==='pending' || (!b.followStatus && !b.purchased);
+    if(aPending && bPending){
+      const aDate = a.callDate || '9999-99-99';
+      const bDate = b.callDate || '9999-99-99';
+      return aDate.localeCompare(bDate);
+    }
+    if(aPending && !bPending) return -1;
+    if(!aPending && bPending) return 1;
+    return (b.date||'').localeCompare(a.date||'');
+  });
 }
 function renderRecordsView(){
   const f = state.recordFilters;
   const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
   const rows = filteredRecords();
-  const rowsHtml = rows.length ? rows.map(r=>`
+  const rowsHtml = rows.length ? rows.map(r=>{
+    const status = r.followStatus || (r.purchased ? 'sold' : 'pending');
+    const statusBadge = status==='sold' ? '<span class="badge sold">Satış yapıldı</span>'
+      : status==='negative' ? '<span class="badge negative">Olumsuz</span>'
+      : '<span class="badge pending">Aranacak</span>';
+    return `
     <tr>
       <td>${r.date}</td>
+      <td>${status==='pending' ? (r.callDate || '<span style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
       <td>${r.channel}</td>
       <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
       <td>${(r.products||[]).map(itemName).join(', ') || '-'}</td>
       <td>${r.customerName || '<span style="color:var(--text-faint)">-</span>'}${r.customerPhone ? '<br><span style="color:var(--text-faint);font-size:12px;">'+r.customerPhone+'</span>' : ''}</td>
-      <td>${r.purchased ? '<span class="badge sold">Satış yapıldı</span>' : '<span class="badge nosale">Satış yok</span>'}</td>
-      <td>${r.purchased ? '<span class="badge '+(r.payment==='Nakit'?'cash':'card')+'">'+r.payment+'</span>' : '-'}</td>
-      <td>${r.purchased ? money(r.amount) : '-'}</td>
+      <td>${statusBadge}</td>
+      <td>${status==='sold' ? '<span class="badge '+(r.payment==='Nakit'?'cash':'card')+'">'+r.payment+'</span>' : '-'}</td>
+      <td>${status==='sold' ? money(r.amount) : '-'}</td>
       <td>${r.staffName}</td>
       <td><button class="icon-btn danger" onclick="deleteRecord('${r.id}')">Sil</button></td>
     </tr>
-  `).join('') : '';
+  `;
+  }).join('') : '';
 
   return `
   <div class="page-header">
-    <div><h1>Kayıtlar</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length})</p></div>
+    <div><h1>Kayıtlar</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — arama tarihi en eski olan en üstte.</p></div>
   </div>
   <div class="card">
     <div class="filters-row">
@@ -740,7 +779,7 @@ function renderRecordsView(){
     ${rows.length ? `
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Tarih</th><th>Kanal</th><th>Hizmet</th><th>Ürün</th><th>Müşteri</th><th>Satış</th><th>Ödeme</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+      <thead><tr><th>Geliş Tarihi</th><th>Arama Tarihi</th><th>Kanal</th><th>Hizmet</th><th>Ürün</th><th>Müşteri</th><th>Durum</th><th>Ödeme</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
     </div>` : `<div class="empty-state">Bu filtrelere uyan kayıt yok. Filtreleri temizleyip tekrar dene.</div>`}
