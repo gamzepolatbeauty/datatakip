@@ -423,7 +423,7 @@ function subscribeConfig(){
     setConn(true);
     configLoadedOnce = true;
     onDataReady();
-    if(state.currentUser) render();
+    if(state.currentUser && state.view !== 'new') render();
   }, err=>{ setConn(false); });
 }
 function subscribeBusiness(){
@@ -524,10 +524,10 @@ function renderNewView(){
     <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
 
     <div class="grid-2" style="margin-bottom:18px;">
-      <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" placeholder="Ad Soyad"></div>
-      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" placeholder="05xx xxx xx xx"></div>
+      <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
+      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="state.newRecord.customerPhone=this.value" placeholder="05xx xxx xx xx"></div>
     </div>
-    <div class="field" style="max-width:200px; margin-bottom:22px;"><label>Tarih</label><input id="fDate" type="date" value="${r.date}"></div>
+    <div class="field" style="max-width:200px; margin-bottom:22px;"><label>Tarih</label><input id="fDate" type="date" value="${r.date}" onchange="state.newRecord.date=this.value"></div>
 
     <div class="divider"></div>
 
@@ -548,18 +548,19 @@ function renderNewView(){
       </div>
       <div class="field">
         <label>Tutar (₺) — fiyat listesinden otomatik hesaplandı, gerekirse değiştir</label>
-        <input id="fAmount" type="number" min="0" value="${r.amount}" placeholder="0">
+        <input id="fAmount" type="number" min="0" value="${r.amount}" oninput="state.newRecord.amount=this.value" placeholder="0">
       </div>
     </div>` : ''}
 
-    <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" placeholder="Ek bilgi"></div>
+    <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" oninput="state.newRecord.note=this.value" placeholder="Ek bilgi"></div>
 
     <button class="btn" style="max-width:220px; margin-top:14px;" onclick="submitRecord()">Kaydet</button>
   </div>
   `;
 }
-window.setChannel = function(c){ state.newRecord.channel = c; render(); }
+window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
+  syncNewRecordInputs();
   const arr = state.newRecord.services;
   const i = arr.findIndex(x=>itemName(x)===name);
   if(i>-1){ arr.splice(i,1); }
@@ -568,6 +569,7 @@ window.toggleService = function(name){
   render();
 }
 window.toggleProduct = function(name){
+  syncNewRecordInputs();
   const arr = state.newRecord.products;
   const i = arr.findIndex(x=>itemName(x)===name);
   if(i>-1){ arr.splice(i,1); }
@@ -575,8 +577,8 @@ window.toggleProduct = function(name){
   recomputeAmount();
   render();
 }
-window.setPurchased = function(v){ state.newRecord.purchased = v; if(!v){ state.newRecord.payment=null; } render(); }
-window.setPayment = function(p){ state.newRecord.payment = p; render(); }
+window.setPurchased = function(v){ syncNewRecordInputs(); state.newRecord.purchased = v; if(!v){ state.newRecord.payment=null; } render(); }
+window.setPayment = function(p){ syncNewRecordInputs(); state.newRecord.payment = p; render(); }
 
 window.submitRecord = async function(){
   syncNewRecordInputs();
