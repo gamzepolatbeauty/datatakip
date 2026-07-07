@@ -155,6 +155,9 @@
   .leader-amount{ font-family:'Fraunces',serif; font-size:16px; color:var(--gold); }
   .leader-track{ width:120px; height:7px; border-radius:4px; background:var(--surface-3); overflow:hidden; margin-left:12px; flex-shrink:0; }
   .leader-track-fill{ height:100%; background:var(--gold); border-radius:4px; }
+  .calllog-item{ font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .calllog-item:last-child{ border-bottom:none; }
+  .calllog-item b{ color:var(--gold); }
 
   .user-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
   .user-row:last-child{ border-bottom:none; }
@@ -300,6 +303,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/fireba
 import {
   getFirestore, collection, doc, setDoc, addDoc, deleteDoc, getDocs, onSnapshot, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDqsnbdSMHHxXusCv3AHYCD7bIKb2GYIJA",
@@ -313,6 +317,7 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
 
 /* ================= CONFIG (defaults, overridden by Firestore) ================= */
 let CHANNELS = ['Google','Instagram','Telefon','Diğer'];
@@ -345,11 +350,39 @@ let state = {
   recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
   dashboardRange: 'all',
   charts: {},
-  presence: {}
+  presence: {},
+  editRecord: null,
+  campaign: { title:'', type:'auto', targetItem:'', manualScores:{}, monthKey: currentMonthKey() }
 };
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function currentMonthKey(){ return new Date().toISOString().slice(0,7); }
+function campaignAutoCount(username){
+  const mk = currentMonthKey();
+  return state.records.filter(r=>r.staffUsername===username && r.followStatus==='sold' && r.date && r.date.slice(0,7)===mk)
+    .reduce((count,r)=>{
+      const has = [...(r.services||[]), ...(r.products||[])].some(x=>itemName(x)===state.campaign.targetItem);
+      return count + (has?1:0);
+    },0);
+}
+function campaignScore(username){
+  if(!state.campaign) return 0;
+  if(state.campaign.type==='manual') return (state.campaign.manualScores||{})[username] || 0;
+  return campaignAutoCount(username);
+}
+function currentWeekRange(){
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day===0 ? -6 : 1-day;
+  const monday = new Date(now); monday.setDate(now.getDate()+diffToMonday); monday.setHours(0,0,0,0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  return { start: monday.toISOString().slice(0,10), end: sunday.toISOString().slice(0,10) };
+}
+function weeksInMonth(){
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  return Math.ceil(daysInMonth/7);
+}
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -498,6 +531,19 @@ async function saveBusiness(){
   try{ await setDoc(doc(db,'config','business'), BUSINESS); }
   catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
 }
+function subscribeCampaign(){
+  onSnapshot(doc(db,'config','campaign'), snap=>{
+    if(snap.exists()){
+      state.campaign = { title:'', type:'auto', targetItem:'', manualScores:{}, monthKey: currentMonthKey(), ...snap.data() };
+    }
+    setConn(true);
+    if(state.currentUser && (state.view==='prim' || state.view==='settings')) render();
+  }, err=>{});
+}
+async function saveCampaign(){
+  try{ await setDoc(doc(db,'config','campaign'), state.campaign); }
+  catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
+}
 
 /* ================= AUTH ================= */
 window.handleLogin = function(){
@@ -579,6 +625,10 @@ function renderPrimView(){
   const remainingToEligible = Math.max(0, thresholdAmount - me.own);
   const medals = ['🥇','🥈','🥉'];
 
+  const campaignBoard = state.users.map(u=>({ username:u.username, name:u.name, score: campaignScore(u.username) }))
+    .sort((a,b)=>b.score-a.score);
+  const campaignMax = Math.max(1, ...campaignBoard.map(c=>c.score));
+
   return `
   <div class="page-header">
     <div><h1>Primim</h1><p>Bu ayki (${currentMonthKey()}) şube performansı ve senin durumun.</p></div>
@@ -609,6 +659,20 @@ function renderPrimView(){
     <div class="kpi-card"><div class="kpi-label">Sıralaman</div><div class="kpi-value">${myRank > 0 ? '#'+myRank : '-'}${myRank>0 && myRank<=3 ? ' ' + medals[myRank-1] : ''}</div></div>
     <div class="kpi-card"><div class="kpi-label">${me.eligible ? 'Bu ayki primin' : 'Prime kalan tutar'}</div><div class="kpi-value" style="color:${me.eligible?'var(--success)':'var(--gold)'};">${me.eligible ? money(me.commission) : money(remainingToEligible)}</div></div>
   </div>
+
+  ${state.campaign.title ? `
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>🎯 Bu ayın kampanyası: ${state.campaign.title}</h3>
+    <div class="helper-text" style="margin-bottom:10px;">${state.campaign.type==='auto' ? `Otomatik takip: "${state.campaign.targetItem}" satışı` : 'Elle takip ediliyor'}</div>
+    ${campaignBoard.map((c,i)=>`
+      <div class="leader-row">
+        <div class="leader-rank">${i<3 ? medals[i] : (i+1)}</div>
+        <div class="leader-name">${c.name}${c.username===state.currentUser.username ? ' <span style="color:var(--gold); font-size:11px;">(sen)</span>' : ''}</div>
+        <div class="leader-track"><div class="leader-track-fill" style="width:${(c.score/campaignMax*100)}%;"></div></div>
+        <div class="leader-amount">${c.score}</div>
+      </div>
+    `).join('')}
+  </div>` : ''}
 
   <div class="chart-card" style="margin-bottom:18px;">
     <h3>Kendi ilerlemen (prim eşiği: %${BUSINESS.minContributionPercent})</h3>
@@ -641,8 +705,16 @@ function recomputeAmount(){
   const total = [...state.newRecord.services, ...state.newRecord.products].reduce((s,x)=>s+(x.price||0),0);
   state.newRecord.amount = total;
 }
+function pendingDueList(){
+  const today = todayISO();
+  return state.records.filter(r=>{
+    const status = r.followStatus || (r.purchased ? 'sold' : 'pending');
+    return status==='pending' && r.callDate && r.callDate <= today;
+  });
+}
 function renderNewView(){
   const r = state.newRecord;
+  const due = pendingDueList();
   const channelChips = CHANNELS.map(c=>`<button class="chip ${r.channel===c?'selected':''}" onclick="setChannel('${c}')">${c}</button>`).join('');
   const serviceChips = SERVICES.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
   const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
@@ -651,6 +723,11 @@ function renderNewView(){
   <div class="page-header">
     <div><h1>Yeni kayıt</h1><p>İletişime geçen kişinin bilgilerini gir.</p></div>
   </div>
+  ${due.length > 0 ? `
+  <div class="celebrate-banner" style="border-color:var(--danger); background:rgba(196,106,94,0.12);">
+    <span class="emoji" style="animation:none;">📞</span>
+    <div><b>${due.length} kişiyi bugün (veya daha önceden) araman gerekiyor.</b> <a href="#" onclick="event.preventDefault(); window.setView('records');" style="color:var(--gold); text-decoration:underline; cursor:pointer;">Kayıtlar'a git →</a></div>
+  </div>` : ''}
   <div class="card">
     <div class="form-section-title">İletişim kanalı</div>
     <div class="chip-group" style="margin-bottom:22px;">${channelChips}</div>
@@ -769,6 +846,7 @@ window.submitRecord = async function(){
     payment: r.followStatus === 'sold' ? r.payment : null,
     amount: r.followStatus === 'sold' ? (parseFloat(r.amount)||0) : 0,
     note: r.note || '',
+    callLog: [],
     staffUsername: state.currentUser.username,
     staffName: state.currentUser.name,
     createdAt: new Date().toISOString()
@@ -848,7 +926,7 @@ function renderRecordsView(){
       <td>${status==='sold' ? '<span class="badge '+(r.payment==='Nakit'?'cash':'card')+'">'+r.payment+'</span>' : '-'}</td>
       <td>${status==='sold' ? money(r.amount) : '-'}</td>
       <td>${r.staffName}</td>
-      <td><button class="icon-btn danger" onclick="deleteRecord('${r.id}')">Sil</button></td>
+      <td><button class="icon-btn" onclick="openRecordEditModal('${r.id}')">Düzenle</button><button class="icon-btn danger" onclick="deleteRecord('${r.id}')">Sil</button></td>
     </tr>
   `;
   }).join('') : '';
@@ -905,6 +983,81 @@ window.deleteRecord = async function(id){
   }catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
 }
 
+/* ================= KAYIT DÜZENLEME ================= */
+window.openRecordEditModal = function(id){
+  const rec = state.records.find(r=>r.id===id);
+  if(!rec) return;
+  state.editRecord = {
+    id: rec.id,
+    followStatus: rec.followStatus || (rec.purchased ? 'sold' : 'pending'),
+    callDate: rec.callDate || '',
+    payment: rec.payment || null,
+    amount: rec.amount || 0,
+    callLog: (rec.callLog||[]).slice()
+  };
+  renderRecordEditModal();
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function renderRecordEditModal(){
+  const e = state.editRecord;
+  const rec = state.records.find(r=>r.id===e.id) || {};
+  document.getElementById('modalCard').innerHTML = `
+    <h3>Kaydı düzenle${rec.customerName ? ' — '+rec.customerName : ''}</h3>
+    <div class="form-section-title">Durum</div>
+    <div class="toggle-group" style="margin-bottom:14px;">
+      <button class="toggle-btn ${e.followStatus==='sold'?'selected yes':''}" onclick="setEditStatus('sold')">Satış yapıldı</button>
+      <button class="toggle-btn ${e.followStatus==='pending'?'selected pending':''}" onclick="setEditStatus('pending')">Aranacak</button>
+      <button class="toggle-btn ${e.followStatus==='negative'?'selected no':''}" onclick="setEditStatus('negative')">Olumsuz</button>
+    </div>
+    ${e.followStatus==='pending' ? `<div class="field"><label>Arama tarihi</label><input type="date" value="${e.callDate}" onchange="state.editRecord.callDate=this.value"></div>` : ''}
+    ${e.followStatus==='sold' ? `
+      <div class="field"><label>Ödeme şekli</label>
+        <div class="toggle-group">
+          <button class="toggle-btn ${e.payment==='Nakit'?'selected yes':''}" onclick="setEditPayment('Nakit')">Nakit</button>
+          <button class="toggle-btn ${e.payment==='Kredi Kartı'?'selected yes':''}" onclick="setEditPayment('Kredi Kartı')">Kredi Kartı</button>
+        </div>
+      </div>
+      <div class="field"><label>Tutar (₺)</label><input type="number" min="0" value="${e.amount}" oninput="state.editRecord.amount=this.value"></div>
+    ` : ''}
+    <div class="form-section-title" style="margin-top:16px;">Arama geçmişi</div>
+    <div style="max-height:140px; overflow-y:auto; margin-bottom:10px;">
+      ${e.callLog.length ? e.callLog.map(l=>`<div class="calllog-item"><b>${l.date}</b> · ${l.by}<br>${l.note}</div>`).join('') : '<div class="helper-text">Henüz not eklenmedi.</div>'}
+    </div>
+    <div class="field"><input id="editNoteInput" placeholder="Yeni not ekle (örn. ulaşılamadı, düşünüyor)"></div>
+    <button class="icon-btn" style="margin:6px 0 16px 0;" onclick="addEditNote()">+ Not ekle</button>
+    <div style="display:flex; gap:10px;">
+      <button class="btn secondary" onclick="closeModal()">Vazgeç</button>
+      <button class="btn" onclick="saveRecordEdit()">Kaydet</button>
+    </div>
+  `;
+}
+window.setEditStatus = function(v){ state.editRecord.followStatus=v; renderRecordEditModal(); }
+window.setEditPayment = function(p){ state.editRecord.payment=p; renderRecordEditModal(); }
+window.addEditNote = function(){
+  const input = document.getElementById('editNoteInput');
+  const val = input.value.trim();
+  if(!val) return;
+  state.editRecord.callLog.push({ date: todayISO(), by: state.currentUser.name, note: val });
+  renderRecordEditModal();
+}
+window.saveRecordEdit = async function(){
+  const e = state.editRecord;
+  if(e.followStatus==='pending' && !e.callDate){ showToast('Arama tarihi gerekli.'); return; }
+  if(e.followStatus==='sold' && !e.payment){ showToast('Ödeme şeklini seç.'); return; }
+  try{
+    await setDoc(doc(db,'records',e.id), {
+      followStatus: e.followStatus,
+      purchased: e.followStatus==='sold',
+      callDate: e.followStatus==='pending' ? e.callDate : '',
+      payment: e.followStatus==='sold' ? e.payment : null,
+      amount: e.followStatus==='sold' ? (parseFloat(e.amount)||0) : 0,
+      callLog: e.callLog
+    }, { merge:true });
+    closeModal();
+    showToast('Kayıt güncellendi.');
+  }catch(err){ showToast('Güncellenemedi, bağlantıyı kontrol et.'); }
+}
+
 /* ================= DASHBOARD VIEW ================= */
 function recordsInRange(){
   const range = state.dashboardRange;
@@ -940,6 +1093,13 @@ function renderDashboardView(){
     const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
     return { name:u.name, own, contribPct, eligible, commission };
   }).sort((a,b)=>b.own-a.own);
+
+  const channelStats = CHANNELS.map(c=>{
+    const chanRecs = recs.filter(r=>r.channel===c);
+    const chanSold = chanRecs.filter(r=>(r.followStatus||(r.purchased?'sold':'pending'))==='sold').length;
+    const rate = chanRecs.length ? Math.round(chanSold/chanRecs.length*100) : 0;
+    return { c, total: chanRecs.length, sold: chanSold, rate };
+  });
 
   return `
   <div class="page-header">
@@ -1024,11 +1184,24 @@ function renderDashboardView(){
     <div class="chart-card">
       <h3>İletişim kanalı dağılımı</h3>
       <div style="position:relative; height:220px;"><canvas id="chartChannel"></canvas></div>
+      <div style="margin-top:14px;">
+        <table>
+          <thead><tr><th>Kanal</th><th>Toplam</th><th>Dönüşen</th><th>Oran</th></tr></thead>
+          <tbody>
+            ${channelStats.map(cs=>`<tr><td>${cs.c}</td><td>${cs.total}</td><td>${cs.sold}</td><td>%${cs.rate}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
     <div class="chart-card">
       <h3>Hizmet vs ürün cirosu</h3>
       <div style="position:relative; height:220px;"><canvas id="chartServiceProduct"></canvas></div>
     </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>Son 30 günde ciro trendi</h3>
+    <div style="position:relative; height:220px;"><canvas id="chartTrend"></canvas></div>
   </div>
 
   <div class="chart-card">
@@ -1090,6 +1263,18 @@ function renderCharts(){
         scales:{ x:{ beginAtZero:true, ticks:{ color:muted }, grid:{ color:border } }, y:{ ticks:{ color:muted }, grid:{ display:false } } } }
     });
   }
+
+  const trendDays = [];
+  for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); trendDays.push(d.toISOString().slice(0,10)); }
+  const trendData = trendDays.map(d=> state.records.filter(r=>r.purchased && r.date===d).reduce((s,r)=>s+r.amount,0));
+  if(document.getElementById('chartTrend')){
+    state.charts.trend = new Chart(document.getElementById('chartTrend'), {
+      type:'line',
+      data:{ labels: trendDays.map(d=>d.slice(5)), datasets:[{ label:'Ciro', data:trendData, borderColor:gold, backgroundColor:'rgba(201,161,90,0.15)', fill:true, tension:0.3, pointRadius:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ color:muted }, grid:{ color:border } }, x:{ ticks:{ color:muted, maxTicksLimit:10 }, grid:{ display:false } } } }
+    });
+  }
 }
 
 /* ================= SETTINGS VIEW ================= */
@@ -1139,6 +1324,42 @@ function renderSettingsView(){
   <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Personel hesapları</div>
     ${userRows}
+  </div>
+
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
+    <div class="form-section-title">Aylık kampanya yarışması</div>
+    <div class="grid-2" style="margin-bottom:14px;">
+      <div class="field"><label>Kampanya adı</label><input id="campTitle" value="${state.campaign.title}" placeholder="örn. Güneş Kremi Satış Yarışması"></div>
+      <div class="field"><label>Takip türü</label>
+        <div class="toggle-group">
+          <button class="toggle-btn ${state.campaign.type==='auto'?'selected yes':''}" onclick="setCampaignType('auto')">Ürün/hizmet satışı</button>
+          <button class="toggle-btn ${state.campaign.type==='manual'?'selected yes':''}" onclick="setCampaignType('manual')">Elle giriş</button>
+        </div>
+      </div>
+    </div>
+    ${state.campaign.type==='auto' ? `
+    <div class="field" style="max-width:320px; margin-bottom:14px;">
+      <label>Hangi ürün/hizmet takip edilsin</label>
+      <select id="campTargetItem">
+        <option value="">Seç...</option>
+        ${[...SERVICES, ...PRODUCTS].map(x=>`<option value="${itemName(x)}" ${state.campaign.targetItem===itemName(x)?'selected':''}>${itemName(x)}</option>`).join('')}
+      </select>
+    </div>` : `<div class="helper-text" style="margin-bottom:14px;">Elle giriş seçildi — aşağıdan her personelin sayısını girip güncelleyebilirsin.</div>`}
+    <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="saveCampaignSettings()">Kampanyayı kaydet</button>
+    <button class="icon-btn" style="margin-left:10px;" onclick="resetCampaign()">Yeni ay için sıfırla</button>
+
+    ${state.campaign.type==='manual' && state.campaign.title ? `
+    <div class="divider"></div>
+    <div class="form-section-title">Personel sayıları</div>
+    ${state.users.map(u=>`
+      <div class="price-row">
+        <div class="price-row-name">${u.name}</div>
+        <div class="price-row-controls">
+          <input type="number" min="0" id="campScore_${u.username}" value="${(state.campaign.manualScores||{})[u.username]||0}">
+          <button class="icon-btn" onclick="updateManualScore('${u.username}')">Güncelle</button>
+        </div>
+      </div>`).join('')}
+    ` : ''}
   </div>
 
   <div class="card" style="max-width:900px; margin-bottom:18px;">
@@ -1293,6 +1514,29 @@ window.updatePrice = async function(type, index, value){
   await saveConfig();
   showToast('Fiyat güncellendi.');
 }
+window.setCampaignType = function(t){ state.campaign.type = t; render(); }
+window.saveCampaignSettings = async function(){
+  const title = document.getElementById('campTitle').value.trim();
+  const targetItem = state.campaign.type==='auto' ? (document.getElementById('campTargetItem').value || '') : '';
+  if(state.campaign.type==='auto' && title && !targetItem){ showToast('Bir ürün/hizmet seç.'); return; }
+  state.campaign = { ...state.campaign, title, targetItem };
+  await saveCampaign();
+  showToast('Kampanya kaydedildi.');
+  render();
+}
+window.updateManualScore = async function(username){
+  const val = parseInt(document.getElementById('campScore_'+username).value) || 0;
+  state.campaign.manualScores = { ...(state.campaign.manualScores||{}), [username]: val };
+  await saveCampaign();
+  showToast('Güncellendi.');
+  render();
+}
+window.resetCampaign = async function(){
+  state.campaign = { ...state.campaign, manualScores:{}, monthKey: currentMonthKey() };
+  await saveCampaign();
+  showToast('Kampanya sıfırlandı, yeni ay için hazır.');
+  render();
+}
 window.saveBusinessSettings = async function(){
   const monthlyQuota = parseFloat(document.getElementById('qMonthlyQuota').value) || 0;
   const minContributionPercent = parseFloat(document.getElementById('qMinContrib').value) || 0;
@@ -1342,11 +1586,13 @@ window.importData = function(event){
 /* ================= INIT ================= */
 ;(async function init(){
   try{
+    await signInAnonymously(auth);
     subscribeUsers();
     subscribeRecords();
     subscribeConfig();
     subscribeBusiness();
     subscribePresence();
+    subscribeCampaign();
     await seedUsersIfEmpty();
   }catch(e){
     setConn(false);
