@@ -11,20 +11,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg: #17151A;
-    --surface: #211E25;
-    --surface-2: #2A2631;
-    --surface-3: #332E3C;
-    --border: #3A3542;
-    --gold: #C9A15A;
-    --gold-dim: #8A6F3F;
-    --rose: #B85C7A;
-    --text: #F3EFE8;
-    --text-muted: #A39CAA;
-    --text-faint: #726C7A;
-    --success: #6B9E78;
-    --danger: #C46A5E;
-    --info: #6C93C0;
+    --bg: #FAF6F0;
+    --surface: #FFFFFF;
+    --surface-2: #F3EEE5;
+    --surface-3: #EAE1CF;
+    --border: #E3D8C4;
+    --gold: #A8834B;
+    --gold-dim: #8A6B3A;
+    --rose: #B5637E;
+    --text: #2E2620;
+    --text-muted: #7A6C58;
+    --text-faint: #A79878;
+    --success: #4C8858;
+    --danger: #B14B3E;
+    --info: #4F739C;
   }
   *{box-sizing:border-box;}
   body{
@@ -103,15 +103,15 @@
   .chip-group{ display:flex; flex-wrap:wrap; gap:8px; }
   .chip{ padding:9px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13px; }
   .chip:hover{ border-color:var(--gold); }
-  .chip.selected{ background:rgba(201,161,90,0.16); border-color:var(--gold); color:var(--gold); }
+  .chip.selected{ background:rgba(168,131,75,0.16); border-color:var(--gold); color:var(--gold); }
   .chip small{ opacity:0.75; margin-left:4px; }
   .toggle-group{ display:flex; gap:8px; }
   .toggle-btn{ flex:1; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13.5px; }
-  .toggle-btn.selected.yes{ background:rgba(107,158,120,0.16); border-color:var(--success); color:var(--success); }
-  .toggle-btn.selected.no{ background:rgba(196,106,94,0.16); border-color:var(--danger); color:var(--danger); }
-  .toggle-btn.selected.pending{ background:rgba(201,161,90,0.16); border-color:var(--gold); color:var(--gold); }
-  .badge.pending{ background:rgba(201,161,90,0.16); color:var(--gold); }
-  .badge.negative{ background:rgba(196,106,94,0.16); color:var(--danger); }
+  .toggle-btn.selected.yes{ background:rgba(76,136,88,0.16); border-color:var(--success); color:var(--success); }
+  .toggle-btn.selected.no{ background:rgba(177,75,62,0.16); border-color:var(--danger); color:var(--danger); }
+  .toggle-btn.selected.pending{ background:rgba(168,131,75,0.16); border-color:var(--gold); color:var(--gold); }
+  .badge.pending{ background:rgba(168,131,75,0.16); color:var(--gold); }
+  .badge.negative{ background:rgba(177,75,62,0.16); color:var(--danger); }
   .divider{ height:1px; background:var(--border); margin:22px 0; }
   .helper-text{ font-size:12px; color:var(--text-faint); margin-top:8px; }
 
@@ -122,12 +122,12 @@
   tbody td{ padding:12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
   tbody tr:hover{ background:var(--surface-2); }
   .badge{ display:inline-block; padding:3px 9px; border-radius:12px; font-size:11.5px; white-space:nowrap; }
-  .badge.sold{ background:rgba(107,158,120,0.16); color:var(--success); }
-  .badge.nosale{ background:rgba(163,156,170,0.14); color:var(--text-muted); }
-  .badge.cash{ background:rgba(201,161,90,0.16); color:var(--gold); }
-  .badge.card{ background:rgba(184,92,122,0.16); color:var(--rose); }
-  .badge.eligible{ background:rgba(107,158,120,0.16); color:var(--success); }
-  .badge.noteligible{ background:rgba(163,156,170,0.14); color:var(--text-muted); }
+  .badge.sold{ background:rgba(76,136,88,0.16); color:var(--success); }
+  .badge.nosale{ background:rgba(122,108,88,0.14); color:var(--text-muted); }
+  .badge.cash{ background:rgba(168,131,75,0.16); color:var(--gold); }
+  .badge.card{ background:rgba(181,99,126,0.16); color:var(--rose); }
+  .badge.eligible{ background:rgba(76,136,88,0.16); color:var(--success); }
+  .badge.noteligible{ background:rgba(122,108,88,0.14); color:var(--text-muted); }
   .empty-state{ text-align:center; padding:50px 20px; color:var(--text-faint); }
 
   .kpi-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; }
@@ -142,12 +142,14 @@
   .progress-track{ height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden; }
   .progress-fill{ height:100%; background:var(--gold); border-radius:6px; transition:width .3s; }
   .celebrate-banner{
-    background:linear-gradient(90deg, rgba(201,161,90,0.18), rgba(184,92,122,0.18));
+    background:linear-gradient(90deg, rgba(168,131,75,0.18), rgba(181,99,126,0.18));
     border:1px solid var(--gold); border-radius:14px; padding:18px 22px; margin-bottom:18px;
     display:flex; align-items:center; gap:14px; font-size:14px;
   }
   .celebrate-banner .emoji{ font-size:28px; animation:pulse 1.6s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.18); } }
+  @keyframes blink-red{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+  .overdue-blink{ animation: blink-red 1.1s ease-in-out infinite; }
   .leader-row{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); }
   .leader-row:last-child{ border-bottom:none; }
   .leader-rank{ width:34px; font-size:18px; text-align:center; flex-shrink:0; }
@@ -266,9 +268,9 @@
         <div class="brand-mark"><span>G</span></div>
         <div class="brand-name">Gamze Polat Beauty<small>Takip sistemi</small></div>
       </div>
-      <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Yeni kayıt</span></button>
-      <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="nav-dot"></span><span class="label">Primim</span></button>
-      <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Kayıtlar</span></button>
+      <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Data Ekle</span></button>
+      <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Görüşme Takip</span></button>
+      <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="nav-dot"></span><span class="label">Prim Sıralaması</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
       <div class="sidebar-footer">
@@ -286,9 +288,9 @@
 
   <!-- Mobile bottom tab bar -->
   <div class="mobile-tabbar">
-    <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Yeni</button>
-    <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="tab-icon">★</span>Primim</button>
-    <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Kayıtlar</button>
+    <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Data Ekle</button>
+    <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Görüşme</button>
+    <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="tab-icon">★</span>Prim</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
   </div>
@@ -322,12 +324,13 @@ const auth = getAuth(fbApp);
 
 /* ================= CONFIG (defaults, overridden by Firestore) ================= */
 let CHANNELS = ['Google','Instagram','Telefon','Diğer'];
+let CATEGORIES = ['Lazer','Cilt Bakımı','Tırnak','Diğer'];
 let SERVICES = [
-  {name:'Lazer Epilasyon', price:500},
-  {name:'Cilt Bakımı', price:400},
-  {name:'Protez Tırnak', price:350},
-  {name:'Kaş / Kirpik', price:250},
-  {name:'Saç Bakımı', price:300}
+  {name:'Lazer Epilasyon', price:500, category:'Lazer'},
+  {name:'Cilt Bakımı', price:400, category:'Cilt Bakımı'},
+  {name:'Protez Tırnak', price:350, category:'Tırnak'},
+  {name:'Kaş / Kirpik', price:250, category:'Diğer'},
+  {name:'Saç Bakımı', price:300, category:'Diğer'}
 ];
 let PRODUCTS = [
   {name:'Bakım Kremi', price:200},
@@ -399,6 +402,12 @@ function setConn(ok){
   if(label){ label.textContent = ok ? 'Canlı bağlı' : 'Bağlantı yok'; }
 }
 function money(n){ return '₺' + (Math.round((n||0)*100)/100).toLocaleString('tr-TR'); }
+function formatDateDisplay(iso){
+  if(!iso) return '';
+  const parts = iso.split('-');
+  if(parts.length!==3) return iso;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
 function itemName(x){ return typeof x === 'string' ? x : (x && x.name) || ''; }
 function itemPrice(x){ return typeof x === 'string' ? 0 : (x && x.price) || 0; }
 
@@ -481,15 +490,16 @@ function subscribeConfig(){
       const data = snap.data();
       let needsMigration = false;
       if(Array.isArray(data.channels) && data.channels.length) CHANNELS = data.channels;
+      if(Array.isArray(data.categories) && data.categories.length) CATEGORIES = data.categories;
       if(Array.isArray(data.services) && data.services.length){
         if(typeof data.services[0] === 'string'){
           SERVICES = data.services.map(name=>{
             const known = SERVICES.find(s=>s.name===name);
-            return { name, price: known ? known.price : 0 };
+            return { name, price: known ? known.price : 0, category: 'Diğer' };
           });
           needsMigration = true;
         } else {
-          SERVICES = data.services;
+          SERVICES = data.services.map(s=> s.category ? s : { ...s, category:'Diğer' });
         }
       }
       if(Array.isArray(data.products)){
@@ -502,7 +512,7 @@ function subscribeConfig(){
       }
       if(needsMigration) saveConfig();
     } else {
-      setDoc(doc(db,'config','lists'), { channels: CHANNELS, services: SERVICES, products: PRODUCTS });
+      setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, services: SERVICES, products: PRODUCTS });
     }
     setConn(true);
     configLoadedOnce = true;
@@ -525,7 +535,7 @@ function subscribeBusiness(){
   }, err=>{ setConn(false); });
 }
 async function saveConfig(){
-  try{ await setDoc(doc(db,'config','lists'), { channels: CHANNELS, services: SERVICES, products: PRODUCTS }); }
+  try{ await setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, services: SERVICES, products: PRODUCTS }); }
   catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
 }
 async function saveBusiness(){
@@ -632,7 +642,7 @@ function renderPrimView(){
 
   return `
   <div class="page-header">
-    <div><h1>Primim</h1><p>Bu ayki (${currentMonthKey()}) şube performansı ve senin durumun.</p></div>
+    <div><h1>Prim Sıralaması</h1><p>Bu ayki (${currentMonthKey()}) şube performansı ve senin durumun.</p></div>
   </div>
 
   ${quotaPct>=100 ? `
@@ -717,15 +727,18 @@ function renderNewView(){
   const r = state.newRecord;
   const due = pendingDueList();
   const channelChips = CHANNELS.map(c=>`<button class="chip ${r.channel===c?'selected':''}" onclick="setChannel('${c}')">${c}</button>`).join('');
-  const serviceChips = SERVICES.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
+  if(!state.serviceCategoryFilter) state.serviceCategoryFilter = CATEGORIES[0] || 'Diğer';
+  const filteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.serviceCategoryFilter);
+  const serviceChips = filteredServices.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
+  const selectedServicesSummary = r.services.map(itemName).join(', ');
   const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
 
   return `
   <div class="page-header">
-    <div><h1>Yeni kayıt</h1><p>İletişime geçen kişinin bilgilerini gir.</p></div>
+    <div><h1>Data Ekle</h1><p>İletişime geçen kişinin bilgilerini gir.</p></div>
   </div>
   ${due.length > 0 ? `
-  <div class="celebrate-banner" style="border-color:var(--danger); background:rgba(196,106,94,0.12);">
+  <div class="celebrate-banner" style="border-color:var(--danger); background:rgba(177,75,62,0.12);">
     <span class="emoji" style="animation:none;">📞</span>
     <div><b>${due.length} kişiyi bugün (veya daha önceden) araman gerekiyor.</b> <a href="#" onclick="event.preventDefault(); window.setView('records');" style="color:var(--gold); text-decoration:underline; cursor:pointer;">Kayıtlar'a git →</a></div>
   </div>` : ''}
@@ -734,7 +747,14 @@ function renderNewView(){
     <div class="chip-group" style="margin-bottom:22px;">${channelChips}</div>
 
     <div class="form-section-title">İstenen / satılan hizmet(ler)</div>
-    <div class="chip-group" style="margin-bottom:22px;">${serviceChips || '<span class="helper-text">Henüz hizmet tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+    <div class="field" style="max-width:260px; margin-bottom:14px;">
+      <label>Kategori</label>
+      <select onchange="setServiceCategoryFilter(this.value)">
+        ${CATEGORIES.map(c=>`<option value="${c}" ${state.serviceCategoryFilter===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="chip-group" style="margin-bottom:10px;">${serviceChips || '<span class="helper-text">Bu kategoride hizmet yok, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+    ${selectedServicesSummary ? `<div class="helper-text" style="margin-bottom:22px;"><b>Seçilenler:</b> ${selectedServicesSummary}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="form-section-title">Satılan ürün(ler)</div>
     <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
@@ -786,6 +806,7 @@ window.handlePhoneInput = function(el){
   el.value = digits;
   state.newRecord.customerPhone = digits;
 }
+window.setServiceCategoryFilter = function(cat){ syncNewRecordInputs(); state.serviceCategoryFilter = cat; render(); }
 window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
   syncNewRecordInputs();
@@ -917,8 +938,8 @@ function renderRecordsView(){
       : '<span class="badge pending">Aranacak</span>';
     return `
     <tr>
-      <td>${r.date}</td>
-      <td>${status==='pending' ? (r.callDate ? `<span style="color:${callDateColor(r.callDate)}; font-weight:600;">${r.callDate}</span>` : '<span style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
+      <td>${formatDateDisplay(r.date)}</td>
+      <td>${status==='pending' ? (r.callDate ? `<span class="${callDateColor(r.callDate)==='var(--danger)'?'overdue-blink':''}" style="color:${callDateColor(r.callDate)}; font-weight:600;">${formatDateDisplay(r.callDate)}</span>` : '<span class="overdue-blink" style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
       <td>${r.channel}</td>
       <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
       <td>${(r.products||[]).map(itemName).join(', ') || '-'}</td>
@@ -934,7 +955,7 @@ function renderRecordsView(){
 
   return `
   <div class="page-header">
-    <div><h1>Kayıtlar</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — arama tarihi en eski olan en üstte.</p></div>
+    <div><h1>Görüşme Takip</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — arama tarihi en eski olan en üstte.</p></div>
   </div>
   <div class="card">
     <div class="filters-row">
@@ -1165,8 +1186,8 @@ function renderDashboardView(){
       <h3>Dönüşüm oranı</h3>
       <div class="gauge-wrap">
         <svg width="130" height="130" viewBox="0 0 140 140">
-          <circle cx="70" cy="70" r="58" fill="none" stroke="#3A3542" stroke-width="12"/>
-          <circle cx="70" cy="70" r="58" fill="none" stroke="#C9A15A" stroke-width="12"
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#E3D8C4" stroke-width="12"/>
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#A8834B" stroke-width="12"
             stroke-dasharray="${2*Math.PI*58}" stroke-dashoffset="${2*Math.PI*58*(1-conv/100)}"
             stroke-linecap="round" transform="rotate(-90 70 70)"/>
           <text x="70" y="66" text-anchor="middle" class="gauge-num">${conv}%</text>
@@ -1218,14 +1239,14 @@ function renderCharts(){
   Object.values(state.charts).forEach(c=>c && c.destroy());
   state.charts = {};
 
-  const gold = '#C9A15A', rose='#B85C7A', muted='#A39CAA', border='#3A3542';
+  const gold = '#A8834B', rose='#B5637E', muted='#7A6C58', border='#E3D8C4';
 
   const cash = recs.filter(r=>r.purchased && r.payment==='Nakit').length;
   const card = recs.filter(r=>r.purchased && r.payment==='Kredi Kartı').length;
   if(document.getElementById('chartPayment')){
     state.charts.payment = new Chart(document.getElementById('chartPayment'), {
       type:'doughnut',
-      data:{ labels:['Nakit','Kredi Kartı'], datasets:[{ data:[cash,card], backgroundColor:[gold,rose], borderColor:'#211E25', borderWidth:2 }] },
+      data:{ labels:['Nakit','Kredi Kartı'], datasets:[{ data:[cash,card], backgroundColor:[gold,rose], borderColor:'#FFFFFF', borderWidth:2 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -1245,7 +1266,7 @@ function renderCharts(){
   if(document.getElementById('chartServiceProduct')){
     state.charts.serviceProduct = new Chart(document.getElementById('chartServiceProduct'), {
       type:'doughnut',
-      data:{ labels:['Hizmet','Ürün'], datasets:[{ data:[serviceRevenue,productRevenue], backgroundColor:[gold,rose], borderColor:'#211E25', borderWidth:2 }] },
+      data:{ labels:['Hizmet','Ürün'], datasets:[{ data:[serviceRevenue,productRevenue], backgroundColor:[gold,rose], borderColor:'#FFFFFF', borderWidth:2 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -1271,7 +1292,7 @@ function renderCharts(){
   if(document.getElementById('chartTrend')){
     state.charts.trend = new Chart(document.getElementById('chartTrend'), {
       type:'line',
-      data:{ labels: trendDays.map(d=>d.slice(5)), datasets:[{ label:'Ciro', data:trendData, borderColor:gold, backgroundColor:'rgba(201,161,90,0.15)', fill:true, tension:0.3, pointRadius:0 }] },
+      data:{ labels: trendDays.map(d=>d.slice(5)), datasets:[{ label:'Ciro', data:trendData, borderColor:gold, backgroundColor:'rgba(168,131,75,0.15)', fill:true, tension:0.3, pointRadius:0 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
         scales:{ y:{ beginAtZero:true, ticks:{ color:muted }, grid:{ color:border } }, x:{ ticks:{ color:muted, maxTicksLimit:10 }, grid:{ display:false } } } }
     });
@@ -1300,12 +1321,20 @@ function renderSettingsView(){
 
   const servicePriceRows = SERVICES.map((s,i)=>`
     <div class="price-row">
-      <div class="price-row-name">${itemName(s)}</div>
+      <div class="price-row-name">${itemName(s)}<br><span style="color:var(--text-faint); font-size:11px;">${s.category||'Diğer'}</span></div>
       <div class="price-row-controls">
+        <select onchange="updateServiceCategory(${i}, this.value)" style="padding:7px 9px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:12px;">
+          ${CATEGORIES.map(c=>`<option value="${c}" ${(s.category||'Diğer')===c?'selected':''}>${c}</option>`).join('')}
+        </select>
         <input type="number" min="0" value="${itemPrice(s)}" onchange="updatePrice('services',${i}, this.value)">
         <button class="icon-btn danger" onclick="removePriceItem('services',${i})">Sil</button>
       </div>
     </div>`).join('') || '<div class="helper-text">Henüz hizmet eklenmedi.</div>';
+
+  const categoryChips = CATEGORIES.map((c,i)=>`
+    <span class="chip selected" style="display:inline-flex; align-items:center; gap:8px;">
+      ${c}<span onclick="removeCategoryItem(${i})" style="cursor:pointer; color:var(--danger); font-size:12px;">✕</span>
+    </span>`).join('');
 
   const productPriceRows = PRODUCTS.map((p,i)=>`
     <div class="price-row">
@@ -1398,10 +1427,23 @@ function renderSettingsView(){
   <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Hizmet fiyat listesi</div>
     ${servicePriceRows}
-    <div style="display:flex; gap:8px; margin-top:14px;">
+    <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
       <input id="newServiceName" placeholder="Hizmet adı" style="flex:2; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
       <input id="newServicePrice" type="number" min="0" placeholder="Fiyat ₺" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <select id="newServiceCategory" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+        ${CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
       <button class="icon-btn" onclick="addPriceItem('services')">+ Ekle</button>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
+    <div class="form-section-title">Hizmet kategorileri</div>
+    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 14px 0;">Örn. "Tırnak" kategorisine Manikür, Pedikür, Protez Tırnak'ı; "Lazer" kategorisine Lazer Epilasyon, İğneli Epilasyon'u atayabilirsin. Yukarıdaki hizmet listesinden her birinin kategorisini seçebilirsin.</p>
+    <div class="chip-group" style="margin-bottom:14px;">${categoryChips}</div>
+    <div style="display:flex; gap:8px;">
+      <input id="newCategoryInput" placeholder="Yeni kategori adı, örn. Tırnak" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <button class="icon-btn" onclick="addCategoryItem()">+ Ekle</button>
     </div>
   </div>
 
@@ -1504,6 +1546,29 @@ window.removeListItem = async function(type, index){
   showToast('Kaldırıldı.');
   render();
 }
+window.updateServiceCategory = async function(index, category){
+  SERVICES[index] = { ...SERVICES[index], category };
+  await saveConfig();
+  showToast('Kategori güncellendi.');
+}
+window.addCategoryItem = async function(){
+  const input = document.getElementById('newCategoryInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(CATEGORIES.includes(val)){ showToast('Bu kategori zaten var.'); return; }
+  CATEGORIES = [...CATEGORIES, val];
+  await saveConfig();
+  showToast('Kategori eklendi.');
+  render();
+}
+window.removeCategoryItem = async function(index){
+  const removed = CATEGORIES[index];
+  CATEGORIES = CATEGORIES.filter((_,i)=>i!==index);
+  SERVICES = SERVICES.map(s=> s.category===removed ? { ...s, category:'Diğer' } : s);
+  await saveConfig();
+  showToast('Kategori kaldırıldı.');
+  render();
+}
 window.addPriceItem = async function(type){
   const nameId = type==='services' ? 'newServiceName' : 'newProductName';
   const priceId = type==='services' ? 'newServicePrice' : 'newProductPrice';
@@ -1512,7 +1577,8 @@ window.addPriceItem = async function(type){
   if(!name || isNaN(price) || price < 0){ showToast('Ad ve geçerli bir fiyat gir.'); return; }
   if(type==='services'){
     if(SERVICES.some(s=>s.name===name)){ showToast('Bu hizmet zaten var.'); return; }
-    SERVICES = [...SERVICES, {name, price}];
+    const category = document.getElementById('newServiceCategory') ? document.getElementById('newServiceCategory').value : 'Diğer';
+    SERVICES = [...SERVICES, {name, price, category}];
   } else {
     if(PRODUCTS.some(p=>p.name===name)){ showToast('Bu ürün zaten var.'); return; }
     PRODUCTS = [...PRODUCTS, {name, price}];
@@ -1693,7 +1759,7 @@ window.saveBusinessSettings = async function(){
 
 /* ================= BACKUP ================= */
 window.exportData = function(){
-  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, services: SERVICES, products: PRODUCTS, business: BUSINESS };
+  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, categories: CATEGORIES, services: SERVICES, products: PRODUCTS, business: BUSINESS };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1713,6 +1779,7 @@ window.importData = function(event){
       state.users = data.users;
       state.records = data.records;
       if(Array.isArray(data.channels)) CHANNELS = data.channels;
+      if(Array.isArray(data.categories)) CATEGORIES = data.categories;
       if(Array.isArray(data.services)) SERVICES = data.services;
       if(Array.isArray(data.products)) PRODUCTS = data.products;
       if(data.business) BUSINESS = data.business;
