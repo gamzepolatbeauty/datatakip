@@ -1614,7 +1614,9 @@ async function importRows(rows){
       payment = pRaw.includes('kredi') ? 'Kredi Kartı' : (pRaw.includes('nakit') ? 'Nakit' : null);
       amount = parseFloat(row['Tutar']) || 0;
     }
-    let phone = (row['Telefon']||'').toString().replace(/\D/g,'').slice(0,11);
+    let phone = (row['Telefon']||'').toString().replace(/\D/g,'');
+    if(phone.length === 10 && phone[0] !== '0') phone = '0' + phone;
+    phone = phone.slice(0,11);
     if(phone && !/^0\d{10}$/.test(phone)) phone = '';
 
     const staffUsername = (row['Personel']||'').toString().trim() || state.currentUser.username;
