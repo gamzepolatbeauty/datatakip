@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg: #17151A;
@@ -1327,6 +1328,27 @@ function renderSettingsView(){
   </div>
 
   <div class="card" style="max-width:900px; margin-bottom:18px;">
+    <div class="form-section-title">Excel'den toplu kayıt aktarımı</div>
+    <p style="font-size:13px; color:var(--text-muted); margin:0 0 14px 0;">
+      Geçmiş verilerini (aylardır tuttuğun Excel'i) buradan toplu olarak sisteme aktarabilirsin.
+      Önce şablonu indir, kendi verini bu formata uygun şekilde doldur, sonra yükle.
+    </p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+      <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="downloadImportTemplate()">Şablonu indir (.xlsx)</button>
+      <label class="btn secondary" style="width:auto; padding:10px 18px; display:inline-flex; align-items:center;">
+        Doldurulmuş Excel'i yükle
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelImport(event)">
+      </label>
+    </div>
+    <div id="importResult" class="helper-text"></div>
+    <div class="helper-text" style="margin-top:10px;">
+      Şablondaki sütunlar: <b>Tarih</b> (YYYY-AA-GG), <b>Kanal</b>, <b>Hizmetler</b> (virgülle ayrılmış), <b>Urunler</b> (virgülle ayrılmış),
+      <b>Musteri Adi</b>, <b>Telefon</b>, <b>Durum</b> (Satış yapıldı / Aranacak / Olumsuz), <b>Arama Tarihi</b>, <b>Odeme Sekli</b> (Nakit / Kredi Kartı),
+      <b>Tutar</b>, <b>Not</b>, <b>Personel</b> (kullanıcı adı, örn. admin). Sadece Tarih, Kanal ve Durum zorunlu — diğerleri boş bırakılabilir.
+    </div>
+  </div>
+
+  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Aylık kampanya yarışması</div>
     <div class="grid-2" style="margin-bottom:14px;">
       <div class="field"><label>Kampanya adı</label><input id="campTitle" value="${state.campaign.title}" placeholder="örn. Güneş Kremi Satış Yarışması"></div>
@@ -1513,6 +1535,126 @@ window.updatePrice = async function(type, index, value){
   else { PRODUCTS[index] = { ...PRODUCTS[index], price }; }
   await saveConfig();
   showToast('Fiyat güncellendi.');
+}
+/* ================= EXCEL'DEN TOPLU AKTARIM ================= */
+window.downloadImportTemplate = function(){
+  const headers = ['Tarih','Kanal','Hizmetler','Urunler','Musteri Adi','Telefon','Durum','Arama Tarihi','Odeme Sekli','Tutar','Not','Personel'];
+  const example = ['2026-07-01','Instagram','Lazer Epilasyon','','Ayşe Yılmaz','05321234567','Aranacak','2026-07-10','','','Fiyat sordu','admin'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Kayıtlar');
+  XLSX.writeFile(wb, 'kayit-sablonu.xlsx');
+}
+window.handleExcelImport = function(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    try{
+      const wb = XLSX.read(e.target.result, { type:'binary', cellDates:false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      await importRows(rows);
+    }catch(err){
+      document.getElementById('importResult').innerHTML = '<span style="color:var(--danger);">Dosya okunamadı. Şablonu bozmadan doldurduğundan emin ol.</span>';
+    }
+    event.target.value = '';
+  };
+  reader.readAsBinaryString(file);
+}
+function normalizeStatus(v){
+  const s = (v||'').toString().trim().toLowerCase();
+  if(s.includes('satış') || s.includes('satis')) return 'sold';
+  if(s.includes('olumsuz')) return 'negative';
+  if(s.includes('aran')) return 'pending';
+  return null;
+}
+function excelDateToISO(v){
+  if(!v) return '';
+  if(typeof v === 'number'){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  const s = v.toString().trim();
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  const m2 = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+  if(m2) return `${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
+  return '';
+}
+async function importRows(rows){
+  const resultEl = document.getElementById('importResult');
+  resultEl.innerHTML = 'İçe aktarılıyor...';
+  let ok = 0, failed = [];
+  const newChannels = new Set(CHANNELS);
+  const validRecords = [];
+
+  rows.forEach((row, i)=>{
+    const lineNo = i + 2;
+    const date = excelDateToISO(row['Tarih']);
+    const channel = (row['Kanal']||'').toString().trim();
+    const status = normalizeStatus(row['Durum']);
+    if(!date){ failed.push(lineNo + '. satır: geçersiz tarih'); return; }
+    if(!channel){ failed.push(lineNo + '. satır: kanal boş'); return; }
+    if(!status){ failed.push(lineNo + '. satır: durum tanınmadı (Satış yapıldı/Aranacak/Olumsuz olmalı)'); return; }
+
+    const services = (row['Hizmetler']||'').toString().split(',').map(s=>s.trim()).filter(Boolean)
+      .map(name=>{ const found = SERVICES.find(x=>itemName(x).toLowerCase()===name.toLowerCase()); return { name, price: found?itemPrice(found):0 }; });
+    const products = (row['Urunler']||'').toString().split(',').map(s=>s.trim()).filter(Boolean)
+      .map(name=>{ const found = PRODUCTS.find(x=>itemName(x).toLowerCase()===name.toLowerCase()); return { name, price: found?itemPrice(found):0 }; });
+
+    let callDate = '';
+    if(status==='pending'){
+      callDate = excelDateToISO(row['Arama Tarihi']);
+      if(!callDate){ failed.push(lineNo + '. satır: Aranacak durumunda arama tarihi zorunlu'); return; }
+    }
+    let payment = null, amount = 0;
+    if(status==='sold'){
+      const pRaw = (row['Odeme Sekli']||'').toString().trim().toLowerCase();
+      payment = pRaw.includes('kredi') ? 'Kredi Kartı' : (pRaw.includes('nakit') ? 'Nakit' : null);
+      amount = parseFloat(row['Tutar']) || 0;
+    }
+    let phone = (row['Telefon']||'').toString().replace(/\D/g,'').slice(0,11);
+    if(phone && !/^0\d{10}$/.test(phone)) phone = '';
+
+    const staffUsername = (row['Personel']||'').toString().trim() || state.currentUser.username;
+    const staffUser = state.users.find(u=>u.username===staffUsername);
+
+    newChannels.add(channel);
+    validRecords.push({
+      date, channel, services, products,
+      customerName: (row['Musteri Adi']||'').toString().trim(),
+      customerPhone: phone,
+      followStatus: status,
+      purchased: status==='sold',
+      callDate, payment, amount,
+      note: (row['Not']||'').toString().trim(),
+      callLog: [],
+      staffUsername,
+      staffName: staffUser ? staffUser.name : staffUsername,
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  for(let i=0; i<validRecords.length; i+=400){
+    const chunk = validRecords.slice(i, i+400);
+    const batch = writeBatch(db);
+    chunk.forEach(rec=>{
+      const ref = doc(collection(db,'records'));
+      batch.set(ref, rec);
+    });
+    try{ await batch.commit(); ok += chunk.length; }
+    catch(e){ failed.push('Toplu yazma hatası (satır grubu ' + (i+2) + '+): ' + e.message); }
+  }
+
+  if(newChannels.size > CHANNELS.length){
+    CHANNELS = Array.from(newChannels);
+    await saveConfig();
+  }
+
+  resultEl.innerHTML = `<span style="color:var(--success);">${ok} kayıt başarıyla eklendi.</span>` +
+    (failed.length ? `<br><span style="color:var(--danger);">${failed.length} satır atlandı:</span><br>` + failed.slice(0,15).map(f=>'· '+f).join('<br>') + (failed.length>15 ? '<br>… ve ' + (failed.length-15) + ' tane daha' : '') : '');
+  showToast(ok + ' kayıt eklendi.');
 }
 window.setCampaignType = function(t){ state.campaign.type = t; render(); }
 window.saveCampaignSettings = async function(){
