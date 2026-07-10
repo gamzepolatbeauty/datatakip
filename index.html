@@ -351,8 +351,8 @@ let SERVICES = [
   {name:'Saç Bakımı', price:300, category:'Diğer'}
 ];
 let PRODUCTS = [
-  {name:'Bakım Kremi', price:200},
-  {name:'Şampuan', price:150}
+  {name:'Bakım Kremi', price:200, category:'Diğer'},
+  {name:'Şampuan', price:150, category:'Diğer'}
 ];
 let BUSINESS = { monthlyQuota:500000, minContributionPercent:10, commissionPercent:10 };
 
@@ -537,10 +537,10 @@ function subscribeConfig(){
       }
       if(Array.isArray(data.products)){
         if(data.products.length && typeof data.products[0] === 'string'){
-          PRODUCTS = data.products.map(name=>({ name, price:0 }));
+          PRODUCTS = data.products.map(name=>({ name, price:0, category:'Diğer' }));
           needsMigration = true;
         } else {
-          PRODUCTS = data.products;
+          PRODUCTS = data.products.map(p=> p.category ? p : { ...p, category:'Diğer' });
         }
       }
       if(needsMigration) saveConfig();
@@ -771,10 +771,11 @@ function renderNewView(){
   const due = pendingDueList();
   const channelChips = CHANNELS.map(c=>`<button class="chip ${r.channel===c?'selected':''}" onclick="setChannel('${c}')">${c}</button>`).join('');
   if(!state.serviceCategoryFilter) state.serviceCategoryFilter = CATEGORIES[0] || 'Diğer';
+  if(!state.productCategoryFilter) state.productCategoryFilter = CATEGORIES[0] || 'Diğer';
   const filteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.serviceCategoryFilter);
   const serviceChips = filteredServices.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
   const selectedServicesSummary = r.services.map(itemName).join(', ');
-  const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
+  const productChips = PRODUCTS.filter(p=>(p.category||'Diğer')===state.productCategoryFilter).map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
 
   return `
   <div class="page-header">
@@ -800,7 +801,14 @@ function renderNewView(){
     ${selectedServicesSummary ? `<div class="helper-text" style="margin-bottom:22px;"><b>Seçilenler:</b> ${selectedServicesSummary}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="form-section-title">Satılan ürün(ler)</div>
-    <div class="chip-group" style="margin-bottom:22px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+    <div class="field" style="max-width:260px; margin-bottom:14px;">
+      <label>Kategori</label>
+      <select onchange="setProductCategoryFilter(this.value)">
+        ${CATEGORIES.map(c=>`<option value="${c}" ${state.productCategoryFilter===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="chip-group" style="margin-bottom:10px;">${productChips || '<span class="helper-text">Bu kategoride ürün yok, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
+    ${r.products.length ? `<div class="helper-text" style="margin-bottom:22px;"><b>Seçilenler:</b> ${r.products.map(itemName).join(', ')}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="grid-3" style="margin-bottom:22px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
@@ -850,6 +858,7 @@ window.handlePhoneInput = function(el){
   state.newRecord.customerPhone = digits;
 }
 window.setServiceCategoryFilter = function(cat){ syncNewRecordInputs(); state.serviceCategoryFilter = cat; render(); }
+window.setProductCategoryFilter = function(cat){ syncNewRecordInputs(); state.productCategoryFilter = cat; render(); }
 window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
   syncNewRecordInputs();
@@ -1063,6 +1072,7 @@ window.openRecordEditModal = function(id){
     callLog: (rec.callLog||[]).slice()
   };
   if(!state.editServiceCategoryFilter) state.editServiceCategoryFilter = CATEGORIES[0] || 'Diğer';
+  if(!state.editProductCategoryFilter) state.editProductCategoryFilter = CATEGORIES[0] || 'Diğer';
   renderRecordEditModal();
   document.getElementById('modalOverlay').classList.add('show');
 }
@@ -1072,19 +1082,26 @@ function renderRecordEditModal(){
   const isAdmin = state.currentUser.role === 'admin';
   const editFilteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.editServiceCategoryFilter);
   const editServiceChips = editFilteredServices.map(s=>`<button class="chip ${e.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleEditService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
-  const editProductChips = PRODUCTS.map(p=>`<button class="chip ${e.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleEditProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
+  const editProductChips = PRODUCTS.filter(p=>(p.category||'Diğer')===state.editProductCategoryFilter).map(p=>`<button class="chip ${e.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleEditProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
   const editSelectedSummary = [...e.services.map(itemName), ...e.products.map(itemName)].join(', ');
   document.getElementById('modalCard').innerHTML = `
     <h3>Kaydı düzenle${rec.customerName ? ' — '+rec.customerName : ''}</h3>
 
-    <div class="form-section-title">Hizmet / ürün</div>
+    <div class="form-section-title">Hizmet</div>
     <div class="field" style="max-width:240px; margin-bottom:10px;">
       <select onchange="setEditServiceCategoryFilter(this.value)">
         ${CATEGORIES.map(c=>`<option value="${c}" ${state.editServiceCategoryFilter===c?'selected':''}>${c}</option>`).join('')}
       </select>
     </div>
-    <div class="chip-group" style="margin-bottom:8px;">${editServiceChips || '<span class="helper-text">Bu kategoride hizmet yok.</span>'}</div>
-    <div class="chip-group" style="margin-bottom:8px;">${editProductChips}</div>
+    <div class="chip-group" style="margin-bottom:16px;">${editServiceChips || '<span class="helper-text">Bu kategoride hizmet yok.</span>'}</div>
+
+    <div class="form-section-title">Ürün</div>
+    <div class="field" style="max-width:240px; margin-bottom:10px;">
+      <select onchange="setEditProductCategoryFilter(this.value)">
+        ${CATEGORIES.map(c=>`<option value="${c}" ${state.editProductCategoryFilter===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="chip-group" style="margin-bottom:8px;">${editProductChips || '<span class="helper-text">Bu kategoride ürün yok.</span>'}</div>
     ${editSelectedSummary ? `<div class="helper-text" style="margin-bottom:16px;"><b>Seçilenler:</b> ${editSelectedSummary}</div>` : '<div style="margin-bottom:16px;"></div>'}
     <div class="divider"></div>
 
@@ -1123,6 +1140,7 @@ function renderRecordEditModal(){
   `;
 }
 window.setEditServiceCategoryFilter = function(cat){ state.editServiceCategoryFilter = cat; renderRecordEditModal(); }
+window.setEditProductCategoryFilter = function(cat){ state.editProductCategoryFilter = cat; renderRecordEditModal(); }
 window.toggleEditService = function(name){
   const arr = state.editRecord.services;
   const i = arr.findIndex(x=>itemName(x)===name);
@@ -1446,8 +1464,11 @@ function renderSettingsView(){
 
   const productPriceRows = PRODUCTS.map((p,i)=>`
     <div class="price-row">
-      <div class="price-row-name">${itemName(p)}</div>
+      <div class="price-row-name">${itemName(p)}<br><span style="color:var(--text-faint); font-size:11px;">${p.category||'Diğer'}</span></div>
       <div class="price-row-controls">
+        <select onchange="updateProductCategory(${i}, this.value)" style="padding:7px 9px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:12px;">
+          ${CATEGORIES.map(c=>`<option value="${c}" ${(p.category||'Diğer')===c?'selected':''}>${c}</option>`).join('')}
+        </select>
         <input type="number" min="0" value="${itemPrice(p)}" onchange="updatePrice('products',${i}, this.value)">
         <button class="icon-btn danger" onclick="removePriceItem('products',${i})">Sil</button>
       </div>
@@ -1593,6 +1614,9 @@ function renderSettingsView(){
     <div style="display:flex; gap:8px; margin-top:14px;">
       <input id="newProductName" placeholder="Ürün adı" style="flex:2; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
       <input id="newProductPrice" type="number" min="0" placeholder="Fiyat ₺" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+      <select id="newProductCategory" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+        ${CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
       <button class="icon-btn" onclick="addPriceItem('products')">+ Ekle</button>
     </div>
   </div>
@@ -1676,6 +1700,11 @@ window.updateServiceCategory = async function(index, category){
   await saveConfig();
   showToast('Kategori güncellendi.');
 }
+window.updateProductCategory = async function(index, category){
+  PRODUCTS[index] = { ...PRODUCTS[index], category };
+  await saveConfig();
+  showToast('Kategori güncellendi.');
+}
 window.addCategoryItem = async function(){
   const input = document.getElementById('newCategoryInput');
   const val = input.value.trim();
@@ -1706,7 +1735,8 @@ window.addPriceItem = async function(type){
     SERVICES = [...SERVICES, {name, price, category}];
   } else {
     if(PRODUCTS.some(p=>p.name===name)){ showToast('Bu ürün zaten var.'); return; }
-    PRODUCTS = [...PRODUCTS, {name, price}];
+    const category = document.getElementById('newProductCategory') ? document.getElementById('newProductCategory').value : 'Diğer';
+    PRODUCTS = [...PRODUCTS, {name, price, category}];
   }
   await saveConfig();
   showToast('Eklendi.');
