@@ -776,7 +776,6 @@ function renderNewView(){
   const filteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.serviceCategoryFilter);
   const serviceChips = filteredServices.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
   const selectedServicesChips = r.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(s)}<span onclick="toggleService('${itemName(s)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
-  const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
 
   return `
   <div class="page-header">
@@ -802,8 +801,13 @@ function renderNewView(){
     ${r.services.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen hizmetler</div><div class="chip-group" style="margin-bottom:22px;">${selectedServicesChips}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="form-section-title">Satılan ürün(ler)</div>
-    <div class="chip-group" style="margin-bottom:10px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
-    ${r.products.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen ürünler</div><div class="chip-group" style="margin-bottom:22px;">${r.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('')}</div>` : '<div style="margin-bottom:22px;"></div>'}
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <select id="newProductSelect" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+        ${PRODUCTS.length ? PRODUCTS.map(p=>`<option value="${itemName(p)}">${itemName(p)} — ${money(itemPrice(p))}</option>`).join('') : '<option value="">Henüz ürün tanımlanmadı</option>'}
+      </select>
+      <button class="icon-btn" onclick="addProductFromSelect()">+ Ekle</button>
+    </div>
+    ${r.products.length ? `<div class="chip-group" style="margin-bottom:22px;">${r.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('')}</div>` : '<div class="helper-text" style="margin-bottom:22px;">Henüz ürün seçilmedi.</div>'}
 
     <div class="grid-3" style="margin-bottom:22px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
@@ -877,6 +881,18 @@ window.toggleProduct = function(name){
   const i = arr.findIndex(x=>itemName(x)===name);
   if(i>-1){ arr.splice(i,1); }
   else { const found = PRODUCTS.find(p=>itemName(p)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
+  recomputeAmount();
+  render();
+}
+window.addProductFromSelect = function(){
+  syncNewRecordInputs();
+  const sel = document.getElementById('newProductSelect');
+  if(!sel || !sel.value) return;
+  const name = sel.value;
+  const arr = state.newRecord.products;
+  if(arr.some(x=>itemName(x)===name)){ showToast('Bu ürün zaten seçili.'); return; }
+  const found = PRODUCTS.find(p=>itemName(p)===name);
+  if(found) arr.push({name:itemName(found), price:itemPrice(found)});
   recomputeAmount();
   render();
 }
