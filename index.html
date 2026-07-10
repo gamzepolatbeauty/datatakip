@@ -775,7 +775,7 @@ function renderNewView(){
   if(!state.serviceCategoryFilter) state.serviceCategoryFilter = CATEGORIES[0] || 'Diğer';
   const filteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.serviceCategoryFilter);
   const serviceChips = filteredServices.map(s=>`<button class="chip ${r.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
-  const selectedServicesSummary = r.services.map(itemName).join(', ');
+  const selectedServicesChips = r.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(s)}<span onclick="toggleService('${itemName(s)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
   const productChips = PRODUCTS.map(p=>`<button class="chip ${r.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
 
   return `
@@ -799,11 +799,11 @@ function renderNewView(){
       </select>
     </div>
     <div class="chip-group" style="margin-bottom:10px;">${serviceChips || '<span class="helper-text">Bu kategoride hizmet yok, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
-    ${selectedServicesSummary ? `<div class="helper-text" style="margin-bottom:22px;"><b>Seçilenler:</b> ${selectedServicesSummary}</div>` : '<div style="margin-bottom:22px;"></div>'}
+    ${r.services.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen hizmetler</div><div class="chip-group" style="margin-bottom:22px;">${selectedServicesChips}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="form-section-title">Satılan ürün(ler)</div>
     <div class="chip-group" style="margin-bottom:10px;">${productChips || '<span class="helper-text">Henüz ürün tanımlanmadı, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
-    ${r.products.length ? `<div class="helper-text" style="margin-bottom:22px;"><b>Seçilenler:</b> ${r.products.map(itemName).join(', ')}</div>` : '<div style="margin-bottom:22px;"></div>'}
+    ${r.products.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen ürünler</div><div class="chip-group" style="margin-bottom:22px;">${r.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('')}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="grid-3" style="margin-bottom:22px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
@@ -843,7 +843,10 @@ function renderNewView(){
 
     <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" oninput="state.newRecord.note=this.value" placeholder="Ek bilgi"></div>
 
-    <button class="btn" style="max-width:220px; margin-top:14px;" onclick="submitRecord()">Kaydet</button>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="btn secondary" style="max-width:160px;" onclick="resetNewRecordForm()">Vazgeç</button>
+      <button class="btn" style="max-width:220px;" onclick="submitRecord()">Kaydet</button>
+    </div>
   </div>
   `;
 }
@@ -853,6 +856,11 @@ window.handlePhoneInput = function(el){
   state.newRecord.customerPhone = digits;
 }
 window.setServiceCategoryFilter = function(cat){ syncNewRecordInputs(); state.serviceCategoryFilter = cat; render(); }
+window.resetNewRecordForm = function(){
+  state.newRecord = { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
+  showToast('Form temizlendi.');
+  render();
+}
 window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
   syncNewRecordInputs();
@@ -1075,8 +1083,6 @@ function renderRecordEditModal(){
   const isAdmin = state.currentUser.role === 'admin';
   const editFilteredServices = SERVICES.filter(s=>(s.category||'Diğer')===state.editServiceCategoryFilter);
   const editServiceChips = editFilteredServices.map(s=>`<button class="chip ${e.services.some(x=>itemName(x)===itemName(s))?'selected':''}" onclick="toggleEditService('${itemName(s)}')">${itemName(s)}<small>${money(itemPrice(s))}</small></button>`).join('');
-  const editProductChips = PRODUCTS.map(p=>`<button class="chip ${e.products.some(x=>itemName(x)===itemName(p))?'selected':''}" onclick="toggleEditProduct('${itemName(p)}')">${itemName(p)}<small>${money(itemPrice(p))}</small></button>`).join('');
-  const editSelectedSummary = [...e.services.map(itemName), ...e.products.map(itemName)].join(', ');
   document.getElementById('modalCard').innerHTML = `
     <h3>Kaydı düzenle${rec.customerName ? ' — '+rec.customerName : ''}</h3>
 
@@ -1089,8 +1095,15 @@ function renderRecordEditModal(){
     <div class="chip-group" style="margin-bottom:16px;">${editServiceChips || '<span class="helper-text">Bu kategoride hizmet yok.</span>'}</div>
 
     <div class="form-section-title">Ürün</div>
-    <div class="chip-group" style="margin-bottom:8px;">${editProductChips || '<span class="helper-text">Henüz ürün tanımlanmadı.</span>'}</div>
-    ${editSelectedSummary ? `<div class="helper-text" style="margin-bottom:16px;"><b>Seçilenler:</b> ${editSelectedSummary}</div>` : '<div style="margin-bottom:16px;"></div>'}
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <select id="editProductSelect" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+        ${PRODUCTS.length ? PRODUCTS.map(p=>`<option value="${itemName(p)}">${itemName(p)} — ${money(itemPrice(p))}</option>`).join('') : '<option value="">Ürün tanımlanmadı</option>'}
+      </select>
+      <button class="icon-btn" onclick="addEditProductFromSelect()">+ Ekle</button>
+    </div>
+    <div class="chip-group" style="margin-bottom:16px;">
+      ${e.products.length ? e.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleEditProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('') : '<span class="helper-text">Henüz ürün seçilmedi.</span>'}
+    </div>
     <div class="divider"></div>
 
     <div class="form-section-title">Bu görüşmenin sonucu</div>
@@ -1140,6 +1153,16 @@ window.toggleEditProduct = function(name){
   const i = arr.findIndex(x=>itemName(x)===name);
   if(i>-1){ arr.splice(i,1); }
   else { const found = PRODUCTS.find(p=>itemName(p)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
+  renderRecordEditModal();
+}
+window.addEditProductFromSelect = function(){
+  const sel = document.getElementById('editProductSelect');
+  if(!sel || !sel.value) return;
+  const name = sel.value;
+  const arr = state.editRecord.products;
+  if(arr.some(x=>itemName(x)===name)){ showToast('Bu ürün zaten seçili.'); return; }
+  const found = PRODUCTS.find(p=>itemName(p)===name);
+  if(found) arr.push({name:itemName(found), price:itemPrice(found)});
   renderRecordEditModal();
 }
 window.setEditStatus = function(v){ state.editRecord.followStatus=v; renderRecordEditModal(); }
@@ -1941,6 +1964,12 @@ window.importData = function(event){
     document.getElementById('loginSub').textContent = 'Bağlantı kurulamadı.';
   }
   document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') window.handleLogin(); });
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape'){
+      const overlay = document.getElementById('modalOverlay');
+      if(overlay && overlay.classList.contains('show')) window.closeModal();
+    }
+  });
 })();
 </script>
 </body>
