@@ -288,7 +288,6 @@
       </div>
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Data Ekle</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Görüşme Takip</span></button>
-      <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="nav-dot"></span><span class="label">Prim Sıralaması</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
       <div class="sidebar-footer">
@@ -308,7 +307,6 @@
   <div class="mobile-tabbar">
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Data Ekle</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Görüşme</button>
-    <button class="nav-item" data-view="prim" onclick="setView('prim')"><span class="tab-icon">★</span>Prim</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
   </div>
@@ -343,7 +341,6 @@ const auth = getAuth(fbApp);
 /* ================= CONFIG (defaults, overridden by Firestore) ================= */
 let CHANNELS = ['Google','Instagram','Telefon','Diğer'];
 let CATEGORIES = ['Lazer Epilasyon','Cilt Bölümü','Tırnak Bölümü','Zayıflama Bölümü','Diğer'];
-let PRODUCT_CATEGORIES = ['Cilt Bakım Ürünleri','Saç Bakım Ürünleri','Diğer'];
 let SERVICES = [
   {name:'Lazer Epilasyon', price:500, category:'Lazer Epilasyon'},
   {name:'Cilt Bakımı', price:400, category:'Cilt Bölümü'},
@@ -351,11 +348,6 @@ let SERVICES = [
   {name:'Kaş / Kirpik', price:250, category:'Diğer'},
   {name:'Saç Bakımı', price:300, category:'Diğer'}
 ];
-let PRODUCTS = [
-  {name:'Bakım Kremi', price:200, category:'Cilt Bakım Ürünleri'},
-  {name:'Şampuan', price:150, category:'Saç Bakım Ürünleri'}
-];
-let BUSINESS = { monthlyQuota:500000, minContributionPercent:10, commissionPercent:10 };
 
 const DEFAULT_USERS = [
   {username:'admin', password:'admin123', name:'Yönetici', role:'admin'},
@@ -369,43 +361,16 @@ let state = {
   currentUser: null,
   view: 'new',
   ready: false,
-  newRecord: { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' },
-  recordFilters: { channel:'', service:'', staff:'', purchased:'', q:'', from:'', to:'' },
+  newRecord: { date: todayISO(), channel:null, services:[], followStatus:null, appointmentDate:'', appointmentAttended:null, saleMade:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' },
+  recordFilters: { channel:'', service:'', staff:'', status:'', q:'', from:'', to:'' },
   dashboardRange: 'all',
   charts: {},
   presence: {},
-  editRecord: null,
-  campaign: { title:'', type:'auto', targetItem:'', manualScores:{}, monthKey: currentMonthKey() }
+  editRecord: null
 };
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function currentMonthKey(){ return new Date().toISOString().slice(0,7); }
-function campaignAutoCount(username){
-  const mk = currentMonthKey();
-  return state.records.filter(r=>r.staffUsername===username && r.followStatus==='sold' && r.date && r.date.slice(0,7)===mk)
-    .reduce((count,r)=>{
-      const has = [...(r.services||[]), ...(r.products||[])].some(x=>itemName(x)===state.campaign.targetItem);
-      return count + (has?1:0);
-    },0);
-}
-function campaignScore(username){
-  if(!state.campaign) return 0;
-  if(state.campaign.type==='manual') return (state.campaign.manualScores||{})[username] || 0;
-  return campaignAutoCount(username);
-}
-function currentWeekRange(){
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMonday = day===0 ? -6 : 1-day;
-  const monday = new Date(now); monday.setDate(now.getDate()+diffToMonday); monday.setHours(0,0,0,0);
-  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
-  return { start: monday.toISOString().slice(0,10), end: sunday.toISOString().slice(0,10) };
-}
-function weeksInMonth(){
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  return Math.ceil(daysInMonth/7);
-}
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -442,7 +407,7 @@ async function seedUsersIfEmpty(){
   }
 }
 
-let usersLoadedOnce=false, recordsLoadedOnce=false, configLoadedOnce=false, businessLoadedOnce=false;
+let usersLoadedOnce=false, recordsLoadedOnce=false, configLoadedOnce=false;
 let presenceInterval = null;
 function subscribePresence(){
   onSnapshot(collection(db,'presence'), snap=>{
@@ -472,7 +437,7 @@ function lastActiveLabel(username){
   return Math.floor(diffH/24) + ' gün önce';
 }
 function onDataReady(){
-  if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && businessLoadedOnce && !state.ready){
+  if(usersLoadedOnce && recordsLoadedOnce && configLoadedOnce && !state.ready){
     state.ready = true;
     document.getElementById('loginBtn').disabled = false;
     document.getElementById('loginBtn').textContent = 'Giriş yap';
@@ -525,7 +490,6 @@ function subscribeConfig(){
       let needsMigration = false;
       if(Array.isArray(data.channels) && data.channels.length) CHANNELS = data.channels;
       if(Array.isArray(data.categories) && data.categories.length) CATEGORIES = data.categories;
-      if(Array.isArray(data.productCategories) && data.productCategories.length) PRODUCT_CATEGORIES = data.productCategories;
       if(Array.isArray(data.services) && data.services.length){
         if(typeof data.services[0] === 'string'){
           SERVICES = data.services.map(name=>{
@@ -537,17 +501,9 @@ function subscribeConfig(){
           SERVICES = data.services.map(s=> s.category ? s : { ...s, category:'Diğer' });
         }
       }
-      if(Array.isArray(data.products)){
-        if(data.products.length && typeof data.products[0] === 'string'){
-          PRODUCTS = data.products.map(name=>({ name, price:0, category:'Diğer' }));
-          needsMigration = true;
-        } else {
-          PRODUCTS = data.products.map(p=> p.category ? p : { ...p, category:'Diğer' });
-        }
-      }
       if(needsMigration) saveConfig();
     } else {
-      setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, productCategories: PRODUCT_CATEGORIES, services: SERVICES, products: PRODUCTS });
+      setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, services: SERVICES });
     }
     setConn(true);
     configLoadedOnce = true;
@@ -555,39 +511,8 @@ function subscribeConfig(){
     if(state.currentUser && state.view !== 'new') render();
   }, err=>{ setConn(false); });
 }
-function subscribeBusiness(){
-  onSnapshot(doc(db,'config','business'), snap=>{
-    if(snap.exists()){
-      const data = snap.data();
-      BUSINESS = { ...BUSINESS, ...data };
-    } else {
-      setDoc(doc(db,'config','business'), BUSINESS);
-    }
-    setConn(true);
-    businessLoadedOnce = true;
-    onDataReady();
-    if(state.currentUser && (state.view==='dashboard' || state.view==='settings')) render();
-  }, err=>{ setConn(false); });
-}
 async function saveConfig(){
-  try{ await setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, productCategories: PRODUCT_CATEGORIES, services: SERVICES, products: PRODUCTS }); }
-  catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
-}
-async function saveBusiness(){
-  try{ await setDoc(doc(db,'config','business'), BUSINESS); }
-  catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
-}
-function subscribeCampaign(){
-  onSnapshot(doc(db,'config','campaign'), snap=>{
-    if(snap.exists()){
-      state.campaign = { title:'', type:'auto', targetItem:'', manualScores:{}, monthKey: currentMonthKey(), ...snap.data() };
-    }
-    setConn(true);
-    if(state.currentUser && (state.view==='prim' || state.view==='settings')) render();
-  }, err=>{});
-}
-async function saveCampaign(){
-  try{ await setDoc(doc(db,'config','campaign'), state.campaign); }
+  try{ await setDoc(doc(db,'config','lists'), { channels: CHANNELS, categories: CATEGORIES, services: SERVICES }); }
   catch(e){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
 }
 
@@ -652,115 +577,14 @@ window.setView = function(view){
 function render(){
   const main = document.getElementById('mainContent');
   if(state.view === 'new') main.innerHTML = renderNewView();
-  else if(state.view === 'prim') main.innerHTML = renderPrimView();
   else if(state.view === 'records') main.innerHTML = renderRecordsView();
   else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
   else if(state.view === 'settings') main.innerHTML = renderSettingsView();
   if(state.view === 'dashboard') requestAnimationFrame(renderCharts);
 }
 
-/* ================= PRİMİM VIEW (herkese açık) ================= */
-function renderPrimView(){
-  const monthRecs = recordsThisMonth();
-  const monthTotal = monthRecs.reduce((s,r)=>s+r.amount,0);
-  const quota = BUSINESS.monthlyQuota || 0;
-  const quotaPct = quota ? Math.min(100, Math.round((monthTotal/quota)*100)) : 0;
-  const thresholdAmount = quota * (BUSINESS.minContributionPercent||0) / 100;
-
-  const board = state.users.map(u=>{
-    const own = monthRecs.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
-    const contribPct = quota ? (own/quota*100) : 0;
-    const eligible = contribPct >= (BUSINESS.minContributionPercent||0);
-    const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
-    return { username:u.username, name:u.name, own, contribPct, eligible, commission };
-  }).sort((a,b)=>b.own-a.own);
-
-  const maxOwn = Math.max(1, ...board.map(b=>b.own));
-  const me = board.find(b=>b.username===state.currentUser.username) || { own:0, contribPct:0, eligible:false, commission:0 };
-  const myRank = board.findIndex(b=>b.username===state.currentUser.username) + 1;
-  const remainingToEligible = Math.max(0, thresholdAmount - me.own);
-  const medals = ['🥇','🥈','🥉'];
-
-  const campaignBoard = state.users.map(u=>({ username:u.username, name:u.name, score: campaignScore(u.username) }))
-    .sort((a,b)=>b.score-a.score);
-  const campaignMax = Math.max(1, ...campaignBoard.map(c=>c.score));
-
-  return `
-  <div class="page-header">
-    <div><h1>Prim Sıralaması</h1><p>Bu ayki (${currentMonthKey()}) şube performansı ve senin durumun.</p></div>
-  </div>
-
-  ${quotaPct>=100 ? `
-  <div class="celebrate-banner">
-    <span class="emoji">🎉</span>
-    <div><b>Şube hedefine ulaşıldı!</b> Bu ay için ${money(quota)} hedef tamamlandı — harika iş çıkardınız.</div>
-  </div>` : ''}
-  ${me.eligible ? `
-  <div class="celebrate-banner">
-    <span class="emoji">🏆</span>
-    <div><b>Tebrikler, prim hakkı kazandın!</b> Bu ayki priminiz: <b>${money(me.commission)}</b></div>
-  </div>` : ''}
-
-  <div class="chart-card" style="margin-bottom:18px;">
-    <h3>Şube hedefi</h3>
-    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
-      <span>${money(monthTotal)} / ${money(quota)}</span>
-      <span>%${quotaPct}</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" style="width:${quotaPct}%;"></div></div>
-  </div>
-
-  <div class="grid-3" style="margin-bottom:18px;">
-    <div class="kpi-card"><div class="kpi-label">Senin cironun</div><div class="kpi-value gold">${money(me.own)}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Sıralaman</div><div class="kpi-value">${myRank > 0 ? '#'+myRank : '-'}${myRank>0 && myRank<=3 ? ' ' + medals[myRank-1] : ''}</div></div>
-    <div class="kpi-card"><div class="kpi-label">${me.eligible ? 'Bu ayki primin' : 'Prime kalan tutar'}</div><div class="kpi-value" style="color:${me.eligible?'var(--success)':'var(--gold)'};">${me.eligible ? money(me.commission) : money(remainingToEligible)}</div></div>
-  </div>
-
-  ${state.campaign.title ? `
-  <div class="chart-card" style="margin-bottom:18px;">
-    <h3>🎯 Bu ayın kampanyası: ${state.campaign.title}</h3>
-    <div class="helper-text" style="margin-bottom:10px;">${state.campaign.type==='auto' ? `Otomatik takip: "${state.campaign.targetItem}" satışı` : 'Elle takip ediliyor'}</div>
-    ${campaignBoard.map((c,i)=>`
-      <div class="leader-row">
-        <div class="leader-rank">${i<3 ? medals[i] : (i+1)}</div>
-        <div class="leader-name">${c.name}${c.username===state.currentUser.username ? ' <span style="color:var(--gold); font-size:11px;">(sen)</span>' : ''}</div>
-        <div class="leader-track"><div class="leader-track-fill" style="width:${(c.score/campaignMax*100)}%;"></div></div>
-        <div class="leader-amount">${c.score}</div>
-      </div>
-    `).join('')}
-  </div>` : ''}
-
-  <div class="chart-card" style="margin-bottom:18px;">
-    <h3>Kendi ilerlemen (prim eşiği: %${BUSINESS.minContributionPercent})</h3>
-    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
-      <span>Katkın: %${me.contribPct.toFixed(1)}</span>
-      <span>${me.eligible ? 'Hedef tamamlandı ✓' : 'Hedef: %' + BUSINESS.minContributionPercent}</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, (me.contribPct/(BUSINESS.minContributionPercent||1))*100)}%; background:${me.eligible?'var(--success)':'var(--gold)'};"></div></div>
-  </div>
-
-  <div class="chart-card">
-    <h3>Bu ayki sıralama</h3>
-    ${board.map((b,i)=>`
-      <div class="leader-row">
-        <div class="leader-rank">${i<3 ? medals[i] : (i+1)}</div>
-        <div class="leader-name">
-          ${b.name}${b.username===state.currentUser.username ? ' <span style="color:var(--gold); font-size:11px;">(sen)</span>' : ''}
-          <small>${b.eligible ? 'Prim hakkı kazandı · ' + money(b.commission) : 'Katkı: %' + b.contribPct.toFixed(1)}</small>
-        </div>
-        <div class="leader-track"><div class="leader-track-fill" style="width:${(b.own/maxOwn*100)}%;"></div></div>
-        <div class="leader-amount">${money(b.own)}</div>
-      </div>
-    `).join('')}
-  </div>
-  `;
-}
 
 /* ================= NEW RECORD VIEW ================= */
-function recomputeAmount(){
-  const total = [...state.newRecord.services, ...state.newRecord.products].reduce((s,x)=>s+(x.price||0),0);
-  state.newRecord.amount = total;
-}
 function pendingDueList(){
   const today = todayISO();
   return state.records.filter(r=>{
@@ -800,15 +624,6 @@ function renderNewView(){
     <div class="chip-group" style="margin-bottom:10px;">${serviceChips || '<span class="helper-text">Bu kategoride hizmet yok, Ayarlar\'dan ekleyebilirsin.</span>'}</div>
     ${r.services.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen hizmetler</div><div class="chip-group" style="margin-bottom:22px;">${selectedServicesChips}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
-    <div class="form-section-title">Satılan ürün(ler)</div>
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
-      <select id="newProductSelect" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
-        ${PRODUCTS.length ? PRODUCTS.map(p=>`<option value="${itemName(p)}">${itemName(p)} — ${money(itemPrice(p))}</option>`).join('') : '<option value="">Henüz ürün tanımlanmadı</option>'}
-      </select>
-      <button class="icon-btn" onclick="addProductFromSelect()">+ Ekle</button>
-    </div>
-    ${r.products.length ? `<div class="chip-group" style="margin-bottom:22px;">${r.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('')}</div>` : '<div class="helper-text" style="margin-bottom:22px;">Henüz ürün seçilmedi.</div>'}
-
     <div class="grid-3" style="margin-bottom:22px;">
       <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
       <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="handlePhoneInput(this)" inputmode="numeric" maxlength="11" placeholder="05xx xxx xx xx"></div>
@@ -817,10 +632,10 @@ function renderNewView(){
 
     <div class="divider"></div>
 
-    <div class="form-section-title">Satış durumu</div>
+    <div class="form-section-title">Bu görüşmenin sonucu</div>
     <div class="toggle-group" style="margin-bottom:18px; max-width:520px;">
-      <button class="toggle-btn ${r.followStatus==='sold'?'selected yes':''}" onclick="setFollowStatus('sold')">Satış yapıldı</button>
       <button class="toggle-btn ${r.followStatus==='pending'?'selected pending':''}" onclick="setFollowStatus('pending')">Aranacak</button>
+      <button class="toggle-btn ${r.followStatus==='appointment'?'selected yes':''}" onclick="setFollowStatus('appointment')">Randevu Verildi</button>
       <button class="toggle-btn ${r.followStatus==='negative'?'selected no':''}" onclick="setFollowStatus('negative')">Olumsuz</button>
     </div>
 
@@ -830,20 +645,31 @@ function renderNewView(){
       <input id="fCallDate" type="date" value="${r.callDate}" onchange="state.newRecord.callDate=this.value">
     </div>` : ''}
 
-    ${r.followStatus==='sold' ? `
-    <div class="grid-2" style="margin-bottom:8px;">
-      <div class="field">
-        <label>Ödeme şekli</label>
-        <div class="toggle-group">
-          <button class="toggle-btn ${r.payment==='Nakit'?'selected yes':''}" onclick="setPayment('Nakit')">Nakit</button>
-          <button class="toggle-btn ${r.payment==='Kredi Kartı'?'selected yes':''}" onclick="setPayment('Kredi Kartı')">Kredi Kartı</button>
-        </div>
-      </div>
-      <div class="field">
-        <label>Tutar (₺) — fiyat listesinden otomatik hesaplandı, gerekirse değiştir</label>
-        <input id="fAmount" type="number" min="0" value="${r.amount}" oninput="state.newRecord.amount=this.value" placeholder="0">
-      </div>
+    ${r.followStatus==='appointment' ? `
+    <div class="field" style="max-width:200px; margin-bottom:18px;">
+      <label>Randevu tarihi (zorunlu)</label>
+      <input id="fAppointmentDate" type="date" value="${r.appointmentDate}" onchange="state.newRecord.appointmentDate=this.value">
+    </div>
+
+    <div class="form-section-title">Randevuya geldi mi?</div>
+    <div class="toggle-group" style="margin-bottom:18px; max-width:340px;">
+      <button class="toggle-btn ${r.appointmentAttended===true?'selected yes':''}" onclick="setAttended(true)">Geldi</button>
+      <button class="toggle-btn ${r.appointmentAttended===false?'selected no':''}" onclick="setAttended(false)">Gelmedi</button>
+    </div>
+
+    ${r.appointmentAttended===true ? `
+    <div class="form-section-title">Satış yapıldı mı?</div>
+    <div class="toggle-group" style="margin-bottom:18px; max-width:340px;">
+      <button class="toggle-btn ${r.saleMade===true?'selected yes':''}" onclick="setSaleMade(true)">Satış yapıldı</button>
+      <button class="toggle-btn ${r.saleMade===false?'selected no':''}" onclick="setSaleMade(false)">Satış yapılmadı</button>
+    </div>
+    ${r.saleMade===true ? `
+    <div class="field" style="max-width:220px; margin-bottom:18px;">
+      <label>Satış tutarı (₺)</label>
+      <input id="fAmount" type="number" min="0" value="${r.amount}" oninput="state.newRecord.amount=this.value" placeholder="0">
     </div>` : ''}
+    ` : ''}
+    ` : ''}
 
     <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" oninput="state.newRecord.note=this.value" placeholder="Ek bilgi"></div>
 
@@ -861,10 +687,12 @@ window.handlePhoneInput = function(el){
 }
 window.setServiceCategoryFilter = function(cat){ syncNewRecordInputs(); state.serviceCategoryFilter = cat; render(); }
 window.resetNewRecordForm = function(){
-  state.newRecord = { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
+  state.newRecord = { date: todayISO(), channel:null, services:[], followStatus:null, appointmentDate:'', appointmentAttended:null, saleMade:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
   showToast('Form temizlendi.');
   render();
 }
+window.setAttended = function(v){ syncNewRecordInputs(); state.newRecord.appointmentAttended = v; if(!v){ state.newRecord.saleMade=null; state.newRecord.amount=''; } render(); }
+window.setSaleMade = function(v){ syncNewRecordInputs(); state.newRecord.saleMade = v; if(!v){ state.newRecord.amount=''; } render(); }
 window.setChannel = function(c){ syncNewRecordInputs(); state.newRecord.channel = c; render(); }
 window.toggleService = function(name){
   syncNewRecordInputs();
@@ -872,47 +700,25 @@ window.toggleService = function(name){
   const i = arr.findIndex(x=>itemName(x)===name);
   if(i>-1){ arr.splice(i,1); }
   else { const found = SERVICES.find(s=>itemName(s)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
-  recomputeAmount();
-  render();
-}
-window.toggleProduct = function(name){
-  syncNewRecordInputs();
-  const arr = state.newRecord.products;
-  const i = arr.findIndex(x=>itemName(x)===name);
-  if(i>-1){ arr.splice(i,1); }
-  else { const found = PRODUCTS.find(p=>itemName(p)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
-  recomputeAmount();
-  render();
-}
-window.addProductFromSelect = function(){
-  syncNewRecordInputs();
-  const sel = document.getElementById('newProductSelect');
-  if(!sel || !sel.value) return;
-  const name = sel.value;
-  const arr = state.newRecord.products;
-  if(arr.some(x=>itemName(x)===name)){ showToast('Bu ürün zaten seçili.'); return; }
-  const found = PRODUCTS.find(p=>itemName(p)===name);
-  if(found) arr.push({name:itemName(found), price:itemPrice(found)});
-  recomputeAmount();
   render();
 }
 window.setFollowStatus = function(v){
   syncNewRecordInputs();
   state.newRecord.followStatus = v;
-  if(v !== 'sold'){ state.newRecord.payment=null; }
   if(v !== 'pending'){ state.newRecord.callDate=''; }
+  if(v !== 'appointment'){ state.newRecord.appointmentDate=''; state.newRecord.appointmentAttended=null; state.newRecord.saleMade=null; state.newRecord.amount=''; }
   render();
 }
-window.setPayment = function(p){ syncNewRecordInputs(); state.newRecord.payment = p; render(); }
 
 window.submitRecord = async function(){
   syncNewRecordInputs();
   const r = state.newRecord;
   if(!r.channel){ showToast('Lütfen iletişim kanalını seç.'); return; }
-  if(r.services.length===0 && r.products.length===0){ showToast('Lütfen en az bir hizmet veya ürün seç.'); return; }
-  if(!r.followStatus){ showToast('Satış durumunu seç: Satış yapıldı, Aranacak ya da Olumsuz.'); return; }
-  if(r.followStatus==='sold' && !r.payment){ showToast('Ödeme şeklini seç.'); return; }
+  if(r.services.length===0){ showToast('Lütfen en az bir hizmet seç.'); return; }
+  if(!r.followStatus){ showToast('Sonucu seç: Aranacak, Randevu Verildi ya da Olumsuz.'); return; }
   if(r.followStatus==='pending' && !r.callDate){ showToast('Aranacak olarak işaretlediğin için bir arama tarihi girmen gerekiyor.'); return; }
+  if(r.followStatus==='appointment' && !r.appointmentDate){ showToast('Randevu tarihi girmen gerekiyor.'); return; }
+  if(r.followStatus==='appointment' && r.appointmentAttended===true && r.saleMade===true && (!r.amount || parseFloat(r.amount)<=0)){ showToast('Satış tutarını gir.'); return; }
   if(r.customerPhone && !/^0\d{10}$/.test(r.customerPhone)){
     showToast('Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn. 05xx xxx xx xx).');
     return;
@@ -925,18 +731,20 @@ window.submitRecord = async function(){
     }
   }
 
+  const saleMade = r.followStatus==='appointment' && r.appointmentAttended===true && r.saleMade===true;
   const record = {
     date: r.date || todayISO(),
     channel: r.channel,
     services: r.services.slice(),
-    products: r.products.slice(),
     customerName: r.customerName || '',
     customerPhone: r.customerPhone || '',
     followStatus: r.followStatus,
-    purchased: r.followStatus === 'sold',
     callDate: r.followStatus === 'pending' ? r.callDate : '',
-    payment: r.followStatus === 'sold' ? r.payment : null,
-    amount: r.followStatus === 'sold' ? (parseFloat(r.amount)||0) : 0,
+    appointmentDate: r.followStatus === 'appointment' ? r.appointmentDate : '',
+    appointmentAttended: r.followStatus === 'appointment' ? r.appointmentAttended : null,
+    saleMade: r.followStatus === 'appointment' && r.appointmentAttended===true ? r.saleMade : null,
+    purchased: saleMade,
+    amount: saleMade ? (parseFloat(r.amount)||0) : 0,
     note: r.note || '',
     callLog: [],
     staffUsername: state.currentUser.username,
@@ -945,7 +753,7 @@ window.submitRecord = async function(){
   };
   try{
     await addDoc(collection(db,'records'), record);
-    state.newRecord = { date: todayISO(), channel:null, services:[], products:[], followStatus:null, payment:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
+    state.newRecord = { date: todayISO(), channel:null, services:[], followStatus:null, appointmentDate:'', appointmentAttended:null, saleMade:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
     showToast('Kayıt eklendi.');
     render();
   }catch(e){ showToast('Kayıt eklenemedi, bağlantıyı kontrol et.'); }
@@ -956,6 +764,7 @@ function syncNewRecordInputs(){
   if(g('fCustomerPhone')) state.newRecord.customerPhone = g('fCustomerPhone').value;
   if(g('fDate')) state.newRecord.date = g('fDate').value;
   if(g('fCallDate')) state.newRecord.callDate = g('fCallDate').value;
+  if(g('fAppointmentDate')) state.newRecord.appointmentDate = g('fAppointmentDate').value;
   if(g('fAmount')) state.newRecord.amount = g('fAmount').value;
   if(g('fNote')) state.newRecord.note = g('fNote').value;
 }
@@ -973,8 +782,10 @@ function filteredRecords(){
     if(f.channel && r.channel !== f.channel) return false;
     if(f.service && !r.services.some(s=>itemName(s)===f.service)) return false;
     if(f.staff && r.staffUsername !== f.staff) return false;
-    if(f.purchased === 'yes' && r.followStatus!=='sold') return false;
-    if(f.purchased === 'no' && r.followStatus==='sold') return false;
+    if(f.status === 'pending' && r.followStatus !== 'pending') return false;
+    if(f.status === 'appointment' && r.followStatus !== 'appointment') return false;
+    if(f.status === 'negative' && r.followStatus !== 'negative') return false;
+    if(f.status === 'sold' && !r.purchased) return false;
     if(f.from && r.date < f.from) return false;
     if(f.to && r.date > f.to) return false;
     if(f.q){
@@ -984,39 +795,62 @@ function filteredRecords(){
     }
     return true;
   });
+  function priority(r){
+    const status = r.followStatus || 'pending';
+    if(status==='pending') return 0;
+    if(status==='appointment' && r.appointmentAttended===null) return 1;
+    if(status==='appointment') return 2;
+    return 3;
+  }
+  function sortKey(r){
+    const status = r.followStatus || 'pending';
+    if(status==='pending') return r.callDate || '9999-99-99';
+    if(status==='appointment' && r.appointmentAttended===null) return r.appointmentDate || '9999-99-99';
+    return null;
+  }
   return filtered.sort((a,b)=>{
-    const aPending = a.followStatus==='pending' || (!a.followStatus && !a.purchased);
-    const bPending = b.followStatus==='pending' || (!b.followStatus && !b.purchased);
-    if(aPending && bPending){
-      const aDate = a.callDate || '9999-99-99';
-      const bDate = b.callDate || '9999-99-99';
-      return aDate.localeCompare(bDate);
+    const pa = priority(a), pb = priority(b);
+    if(pa !== pb) return pa - pb;
+    if(pa <= 1){
+      return (sortKey(a)||'').localeCompare(sortKey(b)||'');
     }
-    if(aPending && !bPending) return -1;
-    if(!aPending && bPending) return 1;
     return (b.date||'').localeCompare(a.date||'');
   });
+}
+function statusBadgeHtml(r){
+  const status = r.followStatus || 'pending';
+  if(status==='pending') return '<span class="badge pending">Aranacak</span>';
+  if(status==='negative') return '<span class="badge negative">Olumsuz</span>';
+  if(status==='appointment'){
+    if(r.appointmentAttended===null) return '<span class="badge pending">Randevu Verildi</span>';
+    if(r.appointmentAttended===false) return '<span class="badge negative">Gelmedi</span>';
+    if(r.appointmentAttended===true && r.saleMade===true) return '<span class="badge sold">Satış yapıldı</span>';
+    if(r.appointmentAttended===true && r.saleMade===false) return '<span class="badge nosale">Geldi, satış yok</span>';
+    return '<span class="badge pending">Geldi</span>';
+  }
+  return '-';
 }
 function renderRecordsView(){
   const f = state.recordFilters;
   const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
   const rows = filteredRecords();
   const rowsHtml = rows.length ? rows.map(r=>{
-    const status = r.followStatus || (r.purchased ? 'sold' : 'pending');
-    const statusBadge = status==='sold' ? '<span class="badge sold">Satış yapıldı</span>'
-      : status==='negative' ? '<span class="badge negative">Olumsuz</span>'
-      : '<span class="badge pending">Aranacak</span>';
+    const status = r.followStatus || 'pending';
+    let dateCellHtml = '-';
+    if(status==='pending'){
+      dateCellHtml = r.callDate ? `<span class="${callDateColor(r.callDate)==='var(--danger)'?'overdue-blink':''}" style="color:${callDateColor(r.callDate)}; font-weight:600;">${formatDateDisplay(r.callDate)}</span>` : '<span class="overdue-blink" style="color:var(--danger);">Tarih yok</span>';
+    } else if(status==='appointment'){
+      dateCellHtml = r.appointmentDate ? formatDateDisplay(r.appointmentDate) : '-';
+    }
     return `
     <tr>
       <td>${formatDateDisplay(r.date)}</td>
-      <td>${status==='pending' ? (r.callDate ? `<span class="${callDateColor(r.callDate)==='var(--danger)'?'overdue-blink':''}" style="color:${callDateColor(r.callDate)}; font-weight:600;">${formatDateDisplay(r.callDate)}</span>` : '<span class="overdue-blink" style="color:var(--danger);">Tarih yok</span>') : '-'}</td>
+      <td>${dateCellHtml}</td>
       <td>${r.channel}</td>
       <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
-      <td>${(r.products||[]).map(itemName).join(', ') || '-'}</td>
       <td>${r.customerName || '<span style="color:var(--text-faint)">-</span>'}${r.customerPhone ? '<br><span style="color:var(--text-faint);font-size:12px;">'+r.customerPhone+'</span>' : ''}</td>
-      <td>${statusBadge}</td>
-      <td>${status==='sold' ? '<span class="badge '+(r.payment==='Nakit'?'cash':'card')+'">'+r.payment+'</span>' : '-'}</td>
-      <td>${status==='sold' ? money(r.amount) : '-'}</td>
+      <td>${statusBadgeHtml(r)}</td>
+      <td>${r.purchased ? money(r.amount) : '-'}</td>
       <td>${r.staffName}</td>
       <td><button class="icon-btn" onclick="openRecordEditModal('${r.id}')">Düzenle</button>${state.currentUser.role==='admin' ? `<button class="icon-btn danger" onclick="deleteRecord('${r.id}')">Sil</button>` : ''}</td>
     </tr>
@@ -1025,7 +859,7 @@ function renderRecordsView(){
 
   return `
   <div class="page-header">
-    <div><h1>Görüşme Takip</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — arama tarihi en eski olan en üstte.</p></div>
+    <div><h1>Görüşme Takip</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — öncelik sırasına göre (Aranacak → Randevu Verildi → sonuçlananlar).</p></div>
   </div>
   <div class="card">
     <div class="filters-row">
@@ -1042,10 +876,12 @@ function renderRecordsView(){
         <option value="">Tüm personel</option>
         ${staffOptions}
       </select>
-      <select onchange="updateFilter('purchased', this.value)">
-        <option value="">Satış durumu</option>
-        <option value="yes" ${f.purchased==='yes'?'selected':''}>Satış yapıldı</option>
-        <option value="no" ${f.purchased==='no'?'selected':''}>Satış yok</option>
+      <select onchange="updateFilter('status', this.value)">
+        <option value="">Tüm durumlar</option>
+        <option value="pending" ${f.status==='pending'?'selected':''}>Aranacak</option>
+        <option value="appointment" ${f.status==='appointment'?'selected':''}>Randevu Verildi</option>
+        <option value="sold" ${f.status==='sold'?'selected':''}>Satış yapıldı</option>
+        <option value="negative" ${f.status==='negative'?'selected':''}>Olumsuz</option>
       </select>
       <input type="date" value="${f.from}" onchange="updateFilter('from', this.value)">
       <input type="date" value="${f.to}" onchange="updateFilter('to', this.value)">
@@ -1053,11 +889,12 @@ function renderRecordsView(){
     ${rows.length ? `
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Geliş Tarihi</th><th>Arama Tarihi</th><th>Kanal</th><th>Hizmet</th><th>Ürün</th><th>Müşteri</th><th>Durum</th><th>Ödeme</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+      <thead><tr><th>Geliş Tarihi</th><th>Arama/Randevu Tarihi</th><th>Kanal</th><th>Hizmet</th><th>Müşteri</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
     </div>` : `<div class="empty-state">Bu filtrelere uyan kayıt yok. Filtreleri temizleyip tekrar dene.</div>`}
   </div>
+  <button id="scrollTopBtn" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Başa dön" style="position:fixed; bottom:28px; right:28px; width:48px; height:48px; border-radius:50%; background:var(--gold); color:#211A0E; border:none; font-size:20px; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; z-index:120;">↑</button>
   `;
 }
 window.updateFilter = function(key, val){
@@ -1081,12 +918,13 @@ window.openRecordEditModal = function(id){
   if(!rec) return;
   state.editRecord = {
     id: rec.id,
-    followStatus: rec.followStatus || (rec.purchased ? 'sold' : 'pending'),
+    followStatus: rec.followStatus || 'pending',
     callDate: rec.callDate || '',
-    payment: rec.payment || null,
+    appointmentDate: rec.appointmentDate || '',
+    appointmentAttended: rec.appointmentAttended !== undefined ? rec.appointmentAttended : null,
+    saleMade: rec.saleMade !== undefined ? rec.saleMade : null,
     amount: rec.amount || 0,
     services: (rec.services||[]).slice(),
-    products: (rec.products||[]).slice(),
     callLog: (rec.callLog||[]).slice()
   };
   if(!state.editServiceCategoryFilter) state.editServiceCategoryFilter = CATEGORIES[0] || 'Diğer';
@@ -1109,36 +947,33 @@ function renderRecordEditModal(){
       </select>
     </div>
     <div class="chip-group" style="margin-bottom:16px;">${editServiceChips || '<span class="helper-text">Bu kategoride hizmet yok.</span>'}</div>
-
-    <div class="form-section-title">Ürün</div>
-    <div style="display:flex; gap:8px; margin-bottom:10px;">
-      <select id="editProductSelect" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
-        ${PRODUCTS.length ? PRODUCTS.map(p=>`<option value="${itemName(p)}">${itemName(p)} — ${money(itemPrice(p))}</option>`).join('') : '<option value="">Ürün tanımlanmadı</option>'}
-      </select>
-      <button class="icon-btn" onclick="addEditProductFromSelect()">+ Ekle</button>
-    </div>
-    <div class="chip-group" style="margin-bottom:16px;">
-      ${e.products.length ? e.products.map(p=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${itemName(p)}<span onclick="toggleEditProduct('${itemName(p)}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('') : '<span class="helper-text">Henüz ürün seçilmedi.</span>'}
-    </div>
     <div class="divider"></div>
 
     <div class="form-section-title">Bu görüşmenin sonucu</div>
     <div class="toggle-group" style="margin-bottom:14px;">
-      <button class="toggle-btn ${e.followStatus==='sold'?'selected yes':''}" onclick="setEditStatus('sold')">Satış yapıldı</button>
       <button class="toggle-btn ${e.followStatus==='pending'?'selected pending':''}" onclick="setEditStatus('pending')">Aranacak</button>
+      <button class="toggle-btn ${e.followStatus==='appointment'?'selected yes':''}" onclick="setEditStatus('appointment')">Randevu Verildi</button>
       <button class="toggle-btn ${e.followStatus==='negative'?'selected no':''}" onclick="setEditStatus('negative')">Olumsuz</button>
     </div>
     ${e.followStatus==='pending' ? `<div class="field"><label>Yeni arama tarihi (zorunlu)</label><input id="editCallDate" type="date" value="${e.callDate}" onchange="state.editRecord.callDate=this.value"></div>` : ''}
-    ${e.followStatus==='sold' ? `
-      <div class="field"><label>Ödeme şekli</label>
-        <div class="toggle-group">
-          <button class="toggle-btn ${e.payment==='Nakit'?'selected yes':''}" onclick="setEditPayment('Nakit')">Nakit</button>
-          <button class="toggle-btn ${e.payment==='Kredi Kartı'?'selected yes':''}" onclick="setEditPayment('Kredi Kartı')">Kredi Kartı</button>
-        </div>
+    ${e.followStatus==='appointment' ? `
+      <div class="field" style="max-width:220px;"><label>Randevu tarihi (zorunlu)</label><input id="editAppointmentDate" type="date" value="${e.appointmentDate}" onchange="state.editRecord.appointmentDate=this.value"></div>
+      <div class="form-section-title" style="margin-top:14px;">Randevuya geldi mi?</div>
+      <div class="toggle-group" style="margin-bottom:14px; max-width:340px;">
+        <button class="toggle-btn ${e.appointmentAttended===true?'selected yes':''}" onclick="setEditAttended(true)">Geldi</button>
+        <button class="toggle-btn ${e.appointmentAttended===false?'selected no':''}" onclick="setEditAttended(false)">Gelmedi</button>
       </div>
-      <div class="field"><label>Tutar (₺)</label><input type="number" min="0" value="${e.amount}" oninput="state.editRecord.amount=this.value"></div>
+      ${e.appointmentAttended===true ? `
+        <div class="form-section-title">Satış yapıldı mı?</div>
+        <div class="toggle-group" style="margin-bottom:14px; max-width:340px;">
+          <button class="toggle-btn ${e.saleMade===true?'selected yes':''}" onclick="setEditSaleMade(true)">Satış yapıldı</button>
+          <button class="toggle-btn ${e.saleMade===false?'selected no':''}" onclick="setEditSaleMade(false)">Satış yapılmadı</button>
+        </div>
+        ${e.saleMade===true ? `<div class="field" style="max-width:220px;"><label>Satış tutarı (₺)</label><input id="editAmount" type="number" min="0" value="${e.amount}" oninput="state.editRecord.amount=this.value"></div>` : ''}
+      ` : ''}
     ` : ''}
-    <div class="form-section-title" style="margin-top:16px;">Arama geçmişi</div>
+
+    <div class="form-section-title" style="margin-top:16px;">Arama / görüşme geçmişi</div>
     <div style="max-height:200px; overflow-y:auto; margin-bottom:10px; padding-right:4px;">
       ${e.callLog.length ? e.callLog.map((l,idx)=>`<div class="calllog-item">
           <div style="display:flex; justify-content:space-between; gap:8px;">
@@ -1148,8 +983,8 @@ function renderRecordEditModal(){
           ${l.note}${l.nextCallDate ? '<br><span style="color:var(--gold);">→ Yeni arama tarihi: '+formatDateDisplay(l.nextCallDate)+'</span>' : ''}
         </div>`).reverse().join('') : '<div class="helper-text">Henüz not eklenmedi.</div>'}
     </div>
-    <div class="field"><label>Bu görüşmede ne oldu? (not)</label><input id="editNoteInput" placeholder='örn. ulaşılamadı, "saat 5te arayın dedi", randevu oluşturuldu'></div>
-    <div class="helper-text" style="margin-bottom:14px;">Not girmeden çıkarsan hiçbir şey değişmez. Not girersen yukarıdan bir sonuç (Satış yapıldı / Aranacak + tarih / Olumsuz) seçmen gerekir.</div>
+    <div class="field"><label>Bu görüşmede ne oldu? (not)</label><input id="editNoteInput" placeholder='örn. ulaşılamadı, "saat 5te arayın dedi", randevu oluşturuldu, merkeze geldi'></div>
+    <div class="helper-text" style="margin-bottom:14px;">Not girmeden çıkarsan hiçbir şey değişmez. Not girersen yukarıdan bir sonuç (Aranacak + tarih / Randevu Verildi / Olumsuz) seçmen gerekir.</div>
     <div style="display:flex; gap:10px;">
       <button class="btn secondary" onclick="closeModal()">Vazgeç</button>
       <button class="btn" onclick="saveRecordEdit()">Kaydet</button>
@@ -1164,25 +999,22 @@ window.toggleEditService = function(name){
   else { const found = SERVICES.find(s=>itemName(s)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
   renderRecordEditModal();
 }
-window.toggleEditProduct = function(name){
-  const arr = state.editRecord.products;
-  const i = arr.findIndex(x=>itemName(x)===name);
-  if(i>-1){ arr.splice(i,1); }
-  else { const found = PRODUCTS.find(p=>itemName(p)===name); if(found) arr.push({name:itemName(found), price:itemPrice(found)}); }
+window.setEditStatus = function(v){
+  state.editRecord.followStatus = v;
+  if(v !== 'pending'){ state.editRecord.callDate = ''; }
+  if(v !== 'appointment'){ state.editRecord.appointmentDate=''; state.editRecord.appointmentAttended=null; state.editRecord.saleMade=null; state.editRecord.amount=0; }
   renderRecordEditModal();
 }
-window.addEditProductFromSelect = function(){
-  const sel = document.getElementById('editProductSelect');
-  if(!sel || !sel.value) return;
-  const name = sel.value;
-  const arr = state.editRecord.products;
-  if(arr.some(x=>itemName(x)===name)){ showToast('Bu ürün zaten seçili.'); return; }
-  const found = PRODUCTS.find(p=>itemName(p)===name);
-  if(found) arr.push({name:itemName(found), price:itemPrice(found)});
+window.setEditAttended = function(v){
+  state.editRecord.appointmentAttended = v;
+  if(!v){ state.editRecord.saleMade=null; state.editRecord.amount=0; }
   renderRecordEditModal();
 }
-window.setEditStatus = function(v){ state.editRecord.followStatus=v; renderRecordEditModal(); }
-window.setEditPayment = function(p){ state.editRecord.payment=p; renderRecordEditModal(); }
+window.setEditSaleMade = function(v){
+  state.editRecord.saleMade = v;
+  if(!v){ state.editRecord.amount=0; }
+  renderRecordEditModal();
+}
 window.deleteCallLogEntry = async function(idx){
   if(state.currentUser.role !== 'admin') return;
   state.editRecord.callLog.splice(idx,1);
@@ -1197,14 +1029,13 @@ window.saveRecordEdit = async function(){
   const noteInput = document.getElementById('editNoteInput');
   const noteVal = noteInput ? noteInput.value.trim() : '';
   const servicesChanged = JSON.stringify(e.services) !== JSON.stringify((state.records.find(r=>r.id===e.id)||{}).services||[]);
-  const productsChanged = JSON.stringify(e.products) !== JSON.stringify((state.records.find(r=>r.id===e.id)||{}).products||[]);
 
   if(!noteVal){
-    if(servicesChanged || productsChanged){
+    if(servicesChanged){
       try{
-        await setDoc(doc(db,'records',e.id), { services: e.services, products: e.products }, { merge:true });
+        await setDoc(doc(db,'records',e.id), { services: e.services }, { merge:true });
         closeModal();
-        showToast('Hizmet/ürün güncellendi.');
+        showToast('Hizmet güncellendi.');
       }catch(err){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
     } else {
       closeModal();
@@ -1212,17 +1043,21 @@ window.saveRecordEdit = async function(){
     return;
   }
   if(e.followStatus==='pending' && !e.callDate){ showToast('Aranacak seçtiğin için arama tarihi girmen gerekiyor.'); return; }
-  if(e.followStatus==='sold' && !e.payment){ showToast('Ödeme şeklini seç.'); return; }
-  e.callLog.push({ date: todayISO(), by: state.currentUser.name, note: noteVal, nextCallDate: e.followStatus==='pending' ? e.callDate : null });
+  if(e.followStatus==='appointment' && !e.appointmentDate){ showToast('Randevu tarihi girmen gerekiyor.'); return; }
+  if(e.followStatus==='appointment' && e.appointmentAttended===true && e.saleMade===true && (!e.amount || parseFloat(e.amount)<=0)){ showToast('Satış tutarını gir.'); return; }
+
+  const saleMade = e.followStatus==='appointment' && e.appointmentAttended===true && e.saleMade===true;
+  e.callLog.push({ date: todayISO(), by: state.currentUser.name, note: noteVal, nextCallDate: e.followStatus==='pending' ? e.callDate : (e.followStatus==='appointment' ? e.appointmentDate : null) });
   try{
     await setDoc(doc(db,'records',e.id), {
       services: e.services,
-      products: e.products,
       followStatus: e.followStatus,
-      purchased: e.followStatus==='sold',
       callDate: e.followStatus==='pending' ? e.callDate : '',
-      payment: e.followStatus==='sold' ? e.payment : null,
-      amount: e.followStatus==='sold' ? (parseFloat(e.amount)||0) : 0,
+      appointmentDate: e.followStatus==='appointment' ? e.appointmentDate : '',
+      appointmentAttended: e.followStatus==='appointment' ? e.appointmentAttended : null,
+      saleMade: e.followStatus==='appointment' && e.appointmentAttended===true ? e.saleMade : null,
+      purchased: saleMade,
+      amount: saleMade ? (parseFloat(e.amount)||0) : 0,
       callLog: e.callLog
     }, { merge:true });
     closeModal();
@@ -1242,29 +1077,12 @@ function recordsInRange(){
   const fromISO = from.toISOString().slice(0,10);
   return state.records.filter(r=>r.date >= fromISO);
 }
-function recordsThisMonth(){
-  const mk = currentMonthKey();
-  return state.records.filter(r=> r.purchased && r.date && r.date.slice(0,7)===mk);
-}
 function renderDashboardView(){
   const recs = recordsInRange();
   const total = recs.length;
   const sold = recs.filter(r=>r.purchased).length;
   const conv = total ? Math.round((sold/total)*100) : 0;
   const revenue = recs.reduce((s,r)=>s+(r.purchased?r.amount:0),0);
-
-  const monthRecs = recordsThisMonth();
-  const monthTotal = monthRecs.reduce((s,r)=>s+r.amount,0);
-  const quota = BUSINESS.monthlyQuota || 0;
-  const quotaPct = quota ? Math.min(100, Math.round((monthTotal/quota)*100)) : 0;
-
-  const primRows = state.users.map(u=>{
-    const own = monthRecs.filter(r=>r.staffUsername===u.username).reduce((s,r)=>s+r.amount,0);
-    const contribPct = quota ? (own/quota*100) : 0;
-    const eligible = contribPct >= (BUSINESS.minContributionPercent||0);
-    const commission = eligible ? own * (BUSINESS.commissionPercent||0)/100 : 0;
-    return { name:u.name, own, contribPct, eligible, commission };
-  }).sort((a,b)=>b.own-a.own);
 
   const channelStats = CHANNELS.map(c=>{
     const chanRecs = recs.filter(r=>r.channel===c);
@@ -1275,7 +1093,7 @@ function renderDashboardView(){
 
   return `
   <div class="page-header">
-    <div><h1>Dashboard</h1><p>Kanal, hizmet, ürün ve personel bazlı satış performansı.</p></div>
+    <div><h1>Dashboard</h1><p>Kanal, hizmet ve personel bazlı performans.</p></div>
     <select onchange="window.__setRange(this.value)" style="padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
       <option value="all" ${state.dashboardRange==='all'?'selected':''}>Tüm zamanlar</option>
       <option value="today" ${state.dashboardRange==='today'?'selected':''}>Bugün</option>
@@ -1301,36 +1119,6 @@ function renderDashboardView(){
     <div class="kpi-card"><div class="kpi-label">Toplam ciro</div><div class="kpi-value gold">${money(revenue)}</div></div>
   </div>
 
-  <div class="chart-card" style="margin-bottom:18px;">
-    <h3>Bu ayki kota durumu (${currentMonthKey()})</h3>
-    <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:8px;">
-      <span>${money(monthTotal)} / ${money(quota)}</span>
-      <span>%${quotaPct}</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" style="width:${quotaPct}%;"></div></div>
-  </div>
-
-  <div class="chart-card" style="margin-bottom:18px;">
-    <h3>Personel prim durumu (bu ay)</h3>
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr><th>Personel</th><th>Bu ayki ciro</th><th>Katkı %</th><th>Prim hakkı</th><th>Prim tutarı</th></tr></thead>
-      <tbody>
-        ${primRows.map(p=>`
-          <tr>
-            <td>${p.name}</td>
-            <td>${money(p.own)}</td>
-            <td>%${p.contribPct.toFixed(1)}</td>
-            <td>${p.eligible ? '<span class="badge eligible">Hak kazandı</span>' : '<span class="badge noteligible">Henüz yok</span>'}</td>
-            <td>${p.eligible ? money(p.commission) : '-'}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-    </div>
-    <div class="helper-text">Prim hakkı için gereken minimum katkı: %${BUSINESS.minContributionPercent}. Prim oranı: %${BUSINESS.commissionPercent}. Bu ayarları Ayarlar sayfasından değiştirebilirsin.</div>
-  </div>
-
   <div class="grid-2" style="margin-bottom:18px;">
     <div class="chart-card">
       <h3>Dönüşüm oranı</h3>
@@ -1347,27 +1135,21 @@ function renderDashboardView(){
       </div>
     </div>
     <div class="chart-card">
-      <h3>Ödeme şekli dağılımı</h3>
+      <h3>Randevu durumu dağılımı</h3>
       <div style="position:relative; height:180px;"><canvas id="chartPayment"></canvas></div>
     </div>
   </div>
 
-  <div class="grid-2" style="margin-bottom:18px;">
-    <div class="chart-card">
-      <h3>İletişim kanalı dağılımı</h3>
-      <div style="position:relative; height:220px;"><canvas id="chartChannel"></canvas></div>
-      <div style="margin-top:14px;">
-        <table>
-          <thead><tr><th>Kanal</th><th>Toplam</th><th>Dönüşen</th><th>Oran</th></tr></thead>
-          <tbody>
-            ${channelStats.map(cs=>`<tr><td>${cs.c}</td><td>${cs.total}</td><td>${cs.sold}</td><td>%${cs.rate}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="chart-card">
-      <h3>Hizmet vs ürün cirosu</h3>
-      <div style="position:relative; height:220px;"><canvas id="chartServiceProduct"></canvas></div>
+  <div class="chart-card" style="margin-bottom:18px;">
+    <h3>İletişim kanalı dağılımı</h3>
+    <div style="position:relative; height:220px;"><canvas id="chartChannel"></canvas></div>
+    <div style="margin-top:14px;">
+      <table>
+        <thead><tr><th>Kanal</th><th>Toplam</th><th>Dönüşen</th><th>Oran</th></tr></thead>
+        <tbody>
+          ${channelStats.map(cs=>`<tr><td>${cs.c}</td><td>${cs.total}</td><td>${cs.sold}</td><td>%${cs.rate}</td></tr>`).join('')}
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -1391,12 +1173,14 @@ function renderCharts(){
 
   const gold = '#A8834B', rose='#B5637E', muted='#7A6C58', border='#E3D8C4';
 
-  const cash = recs.filter(r=>r.purchased && r.payment==='Nakit').length;
-  const card = recs.filter(r=>r.purchased && r.payment==='Kredi Kartı').length;
+  const apptRecs = recs.filter(r=>r.followStatus==='appointment');
+  const apptAttended = apptRecs.filter(r=>r.appointmentAttended===true).length;
+  const apptNotAttended = apptRecs.filter(r=>r.appointmentAttended===false).length;
+  const apptUnknown = apptRecs.filter(r=>r.appointmentAttended===null || r.appointmentAttended===undefined).length;
   if(document.getElementById('chartPayment')){
     state.charts.payment = new Chart(document.getElementById('chartPayment'), {
       type:'doughnut',
-      data:{ labels:['Nakit','Kredi Kartı'], datasets:[{ data:[cash,card], backgroundColor:[gold,rose], borderColor:'#FFFFFF', borderWidth:2 }] },
+      data:{ labels:['Geldi','Gelmedi','Bekleniyor'], datasets:[{ data:[apptAttended,apptNotAttended,apptUnknown], backgroundColor:[gold,'#B14B3E',rose], borderColor:'#FFFFFF', borderWidth:2 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -1408,16 +1192,6 @@ function renderCharts(){
       data:{ labels:CHANNELS, datasets:[{ label:'Kayıt', data:channelCounts, backgroundColor:gold, borderRadius:4, maxBarThickness:34 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
         scales:{ y:{ beginAtZero:true, ticks:{ color:muted, precision:0 }, grid:{ color:border } }, x:{ ticks:{ color:muted }, grid:{ display:false } } } }
-    });
-  }
-
-  const serviceRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.services||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
-  const productRevenue = recs.filter(r=>r.purchased).reduce((s,r)=>s + (r.products||[]).reduce((a,x)=>a+itemPrice(x),0), 0);
-  if(document.getElementById('chartServiceProduct')){
-    state.charts.serviceProduct = new Chart(document.getElementById('chartServiceProduct'), {
-      type:'doughnut',
-      data:{ labels:['Hizmet','Ürün'], datasets:[{ data:[serviceRevenue,productRevenue], backgroundColor:[gold,rose], borderColor:'#FFFFFF', borderWidth:2 }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
 
@@ -1488,26 +1262,15 @@ function renderSettingsView(){
       ${c}<span onclick="removeCategoryItem(${i})" style="cursor:pointer; color:var(--danger); font-size:12px;">✕</span>
     </span>`).join('');
 
-  const productPriceRows = PRODUCTS.map((p,i)=>`
-    <div class="price-row">
-      <div class="price-row-name">${itemName(p)}</div>
-      <div class="price-row-controls">
-        <input type="number" min="0" value="${itemPrice(p)}" onchange="updatePrice('products',${i}, this.value)">
-        <button class="icon-btn danger" onclick="removePriceItem('products',${i})">Sil</button>
-      </div>
-    </div>`).join('') || '<div class="helper-text">Henüz ürün eklenmedi.</div>';
-
   return `
   <div class="page-header">
-    <div><h1>Ayarlar</h1><p>Personel, fiyat listesi, kota ve prim ayarlarını yönet.</p></div>
+    <div><h1>Ayarlar</h1><p>Personel, hizmet fiyat listesi ve kategorileri yönet.</p></div>
     ${tab==='personel' ? `<button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="openUserModal(null)">+ Yeni personel</button>` : ''}
   </div>
 
   <div class="chip-group" style="margin-bottom:22px;">
     <button class="chip ${tab==='personel'?'selected':''}" onclick="setSettingsTab('personel')">Personel</button>
-    <button class="chip ${tab==='katalog'?'selected':''}" onclick="setSettingsTab('katalog')">Hizmet & Ürün</button>
-    <button class="chip ${tab==='kota'?'selected':''}" onclick="setSettingsTab('kota')">Kota & Prim</button>
-    <button class="chip ${tab==='kampanya'?'selected':''}" onclick="setSettingsTab('kampanya')">Kampanya</button>
+    <button class="chip ${tab==='katalog'?'selected':''}" onclick="setSettingsTab('katalog')">Hizmetler</button>
     <button class="chip ${tab==='veri'?'selected':''}" onclick="setSettingsTab('veri')">Veri (Excel/Yedekleme)</button>
   </div>
 
@@ -1538,9 +1301,9 @@ function renderSettingsView(){
     </div>
     <div id="importResult" class="helper-text"></div>
     <div class="helper-text" style="margin-top:10px;">
-      Şablondaki sütunlar: <b>Tarih</b> (YYYY-AA-GG), <b>Kanal</b>, <b>Hizmetler</b> (virgülle ayrılmış), <b>Urunler</b> (virgülle ayrılmış),
-      <b>Musteri Adi</b>, <b>Telefon</b>, <b>Durum</b> (Satış yapıldı / Aranacak / Olumsuz), <b>Arama Tarihi</b>, <b>Odeme Sekli</b> (Nakit / Kredi Kartı),
-      <b>Tutar</b>, <b>Not</b>, <b>Personel</b> (kullanıcı adı, örn. admin). Sadece Tarih, Kanal ve Durum zorunlu — diğerleri boş bırakılabilir.
+      Şablondaki sütunlar: <b>Tarih</b> (YYYY-AA-GG), <b>Kanal</b>, <b>Hizmetler</b> (virgülle ayrılmış),
+      <b>Musteri Adi</b>, <b>Telefon</b>, <b>Durum</b> (Aranacak / Randevu Verildi / Olumsuz), <b>Arama Tarihi</b>, <b>Randevu Tarihi</b>,
+      <b>Geldi Mi</b> (Evet/Hayır), <b>Satis Yapildi Mi</b> (Evet/Hayır), <b>Tutar</b>, <b>Not</b>, <b>Personel</b> (kullanıcı adı, örn. admin). Sadece Tarih, Kanal ve Durum zorunlu — diğerleri boş bırakılabilir.
     </div>
   </div>
   <div class="card" style="max-width:900px; margin-bottom:18px;">
@@ -1561,57 +1324,6 @@ function renderSettingsView(){
         <input type="file" accept="application/json" style="display:none;" onchange="importData(event)">
       </label>
     </div>
-  </div>
-  ` : ''}
-
-  ${tab==='kampanya' ? `
-  <div class="card" style="max-width:900px; margin-bottom:18px;">
-    <div class="form-section-title">Aylık kampanya yarışması</div>
-    <div class="grid-2" style="margin-bottom:14px;">
-      <div class="field"><label>Kampanya adı</label><input id="campTitle" value="${state.campaign.title}" placeholder="örn. Güneş Kremi Satış Yarışması"></div>
-      <div class="field"><label>Takip türü</label>
-        <div class="toggle-group">
-          <button class="toggle-btn ${state.campaign.type==='auto'?'selected yes':''}" onclick="setCampaignType('auto')">Ürün/hizmet satışı</button>
-          <button class="toggle-btn ${state.campaign.type==='manual'?'selected yes':''}" onclick="setCampaignType('manual')">Elle giriş</button>
-        </div>
-      </div>
-    </div>
-    ${state.campaign.type==='auto' ? `
-    <div class="field" style="max-width:320px; margin-bottom:14px;">
-      <label>Hangi ürün/hizmet takip edilsin</label>
-      <select id="campTargetItem">
-        <option value="">Seç...</option>
-        ${[...SERVICES, ...PRODUCTS].map(x=>`<option value="${itemName(x)}" ${state.campaign.targetItem===itemName(x)?'selected':''}>${itemName(x)}</option>`).join('')}
-      </select>
-    </div>` : `<div class="helper-text" style="margin-bottom:14px;">Elle giriş seçildi — aşağıdan her personelin sayısını girip güncelleyebilirsin.</div>`}
-    <button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="saveCampaignSettings()">Kampanyayı kaydet</button>
-    <button class="icon-btn" style="margin-left:10px;" onclick="resetCampaign()">Yeni ay için sıfırla</button>
-
-    ${state.campaign.type==='manual' && state.campaign.title ? `
-    <div class="divider"></div>
-    <div class="form-section-title">Personel sayıları</div>
-    ${state.users.map(u=>`
-      <div class="price-row">
-        <div class="price-row-name">${u.name}</div>
-        <div class="price-row-controls">
-          <input type="number" min="0" id="campScore_${u.username}" value="${(state.campaign.manualScores||{})[u.username]||0}">
-          <button class="icon-btn" onclick="updateManualScore('${u.username}')">Güncelle</button>
-        </div>
-      </div>`).join('')}
-    ` : ''}
-  </div>
-  ` : ''}
-
-  ${tab==='kota' ? `
-  <div class="card" style="max-width:900px; margin-bottom:18px;">
-    <div class="form-section-title">Kota ve prim ayarları</div>
-    <div class="grid-2" style="margin-bottom:6px;">
-      <div class="field"><label>Aylık merkez kota hedefi (₺)</label><input id="qMonthlyQuota" type="number" min="0" value="${BUSINESS.monthlyQuota}"></div>
-      <div class="field"><label>Prim hakkı için min. katkı (%)</label><input id="qMinContrib" type="number" min="0" max="100" value="${BUSINESS.minContributionPercent}"></div>
-    </div>
-    <div class="field" style="max-width:240px;"><label>Prim oranı (%)</label><input id="qCommission" type="number" min="0" max="100" value="${BUSINESS.commissionPercent}"></div>
-    <button class="btn secondary" style="width:auto; padding:10px 18px; margin-top:10px;" onclick="saveBusinessSettings()">Kaydet</button>
-    <div class="helper-text">Kota her ay değişebileceği için bu tutarı ay başında güncellemen yeterli — geçmiş kayıtlar etkilenmez, hesaplama her zaman güncel değeri kullanır.</div>
   </div>
   ` : ''}
 
@@ -1640,16 +1352,6 @@ function renderSettingsView(){
   </div>
 
   <div class="card" style="max-width:900px; margin-bottom:18px;">
-    <div class="form-section-title">Ürün fiyat listesi</div>
-    ${productPriceRows}
-    <div style="display:flex; gap:8px; margin-top:14px;">
-      <input id="newProductName" placeholder="Ürün adı" style="flex:2; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
-      <input id="newProductPrice" type="number" min="0" placeholder="Fiyat ₺" style="flex:1; padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
-      <button class="icon-btn" onclick="addPriceItem('products')">+ Ekle</button>
-    </div>
-  </div>
-
-  <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">İletişim kanalı seçenekleri</div>
     <div class="chip-group" style="margin-bottom:14px;">${channelChips}</div>
     <div style="display:flex; gap:8px;">
@@ -1663,7 +1365,7 @@ function renderSettingsView(){
 window.setSettingsTab = function(t){ state.settingsTab = t; render(); }
 function buildDedupeKey(r){
   if(r.customerPhone) return 'phone:'+r.customerPhone;
-  return 'combo:'+[r.customerName||'', r.date||'', r.channel||'', (r.services||[]).map(itemName).join('|'), (r.products||[]).map(itemName).join('|'), r.note||''].join('::').toLowerCase();
+  return 'combo:'+[r.customerName||'', r.date||'', r.channel||'', (r.services||[]).map(itemName).join('|'), r.note||''].join('::').toLowerCase();
 }
 window.removeDuplicateRecords = async function(){
   const resultEl = document.getElementById('dedupeResult');
@@ -1782,26 +1484,20 @@ window.removeCategoryItem = async function(index){
   render();
 }
 window.addPriceItem = async function(type){
-  const nameId = type==='services' ? 'newServiceName' : 'newProductName';
-  const priceId = type==='services' ? 'newServicePrice' : 'newProductPrice';
+  const nameId = 'newServiceName';
+  const priceId = 'newServicePrice';
   const name = document.getElementById(nameId).value.trim();
   const price = parseFloat(document.getElementById(priceId).value);
   if(!name || isNaN(price) || price < 0){ showToast('Ad ve geçerli bir fiyat gir.'); return; }
-  if(type==='services'){
-    if(SERVICES.some(s=>s.name===name)){ showToast('Bu hizmet zaten var.'); return; }
-    const category = document.getElementById('newServiceCategory') ? document.getElementById('newServiceCategory').value : 'Diğer';
-    SERVICES = [...SERVICES, {name, price, category}];
-  } else {
-    if(PRODUCTS.some(p=>p.name===name)){ showToast('Bu ürün zaten var.'); return; }
-    PRODUCTS = [...PRODUCTS, {name, price}];
-  }
+  if(SERVICES.some(s=>s.name===name)){ showToast('Bu hizmet zaten var.'); return; }
+  const category = document.getElementById('newServiceCategory') ? document.getElementById('newServiceCategory').value : 'Diğer';
+  SERVICES = [...SERVICES, {name, price, category}];
   await saveConfig();
   showToast('Eklendi.');
   render();
 }
 window.removePriceItem = async function(type, index){
-  if(type==='services'){ SERVICES = SERVICES.filter((_,i)=>i!==index); }
-  else { PRODUCTS = PRODUCTS.filter((_,i)=>i!==index); }
+  SERVICES = SERVICES.filter((_,i)=>i!==index);
   await saveConfig();
   showToast('Kaldırıldı.');
   render();
@@ -1809,15 +1505,14 @@ window.removePriceItem = async function(type, index){
 window.updatePrice = async function(type, index, value){
   const price = parseFloat(value);
   if(isNaN(price) || price < 0){ showToast('Geçerli bir fiyat gir.'); render(); return; }
-  if(type==='services'){ SERVICES[index] = { ...SERVICES[index], price }; }
-  else { PRODUCTS[index] = { ...PRODUCTS[index], price }; }
+  SERVICES[index] = { ...SERVICES[index], price };
   await saveConfig();
   showToast('Fiyat güncellendi.');
 }
 /* ================= EXCEL'DEN TOPLU AKTARIM ================= */
 window.downloadImportTemplate = function(){
-  const headers = ['Tarih','Kanal','Hizmetler','Urunler','Musteri Adi','Telefon','Durum','Arama Tarihi','Odeme Sekli','Tutar','Not','Personel'];
-  const example = ['2026-07-01','Instagram','Lazer Epilasyon','','Ayşe Yılmaz','05321234567','Aranacak','2026-07-10','','','Fiyat sordu','admin'];
+  const headers = ['Tarih','Kanal','Hizmetler','Musteri Adi','Telefon','Durum','Arama Tarihi','Randevu Tarihi','Geldi Mi','Satis Yapildi Mi','Tutar','Not','Personel'];
+  const example = ['2026-07-01','Instagram','Lazer Epilasyon','Ayşe Yılmaz','05321234567','Aranacak','2026-07-10','','','','','Fiyat sordu','admin'];
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Kayıtlar');
@@ -1842,9 +1537,16 @@ window.handleExcelImport = function(event){
 }
 function normalizeStatus(v){
   const s = (v||'').toString().trim().toLowerCase();
-  if(s.includes('satış') || s.includes('satis')) return 'sold';
   if(s.includes('olumsuz')) return 'negative';
+  if(s.includes('randevu')) return 'appointment';
   if(s.includes('aran')) return 'pending';
+  return null;
+}
+function normalizeYesNo(v){
+  const s = (v||'').toString().trim().toLowerCase();
+  if(!s) return null;
+  if(s.includes('evet') || s==='true' || s==='1') return true;
+  if(s.includes('hayır') || s.includes('hayir') || s==='false' || s==='0') return false;
   return null;
 }
 function excelDateToISO(v){
@@ -1874,23 +1576,25 @@ async function importRows(rows){
     const status = normalizeStatus(row['Durum']);
     if(!date){ failed.push(lineNo + '. satır: geçersiz tarih'); return; }
     if(!channel){ failed.push(lineNo + '. satır: kanal boş'); return; }
-    if(!status){ failed.push(lineNo + '. satır: durum tanınmadı (Satış yapıldı/Aranacak/Olumsuz olmalı)'); return; }
+    if(!status){ failed.push(lineNo + '. satır: durum tanınmadı (Aranacak/Randevu Verildi/Olumsuz olmalı)'); return; }
 
     const services = (row['Hizmetler']||'').toString().split(',').map(s=>s.trim()).filter(Boolean)
       .map(name=>{ const found = SERVICES.find(x=>itemName(x).toLowerCase()===name.toLowerCase()); return { name, price: found?itemPrice(found):0 }; });
-    const products = (row['Urunler']||'').toString().split(',').map(s=>s.trim()).filter(Boolean)
-      .map(name=>{ const found = PRODUCTS.find(x=>itemName(x).toLowerCase()===name.toLowerCase()); return { name, price: found?itemPrice(found):0 }; });
 
     let callDate = '';
     if(status==='pending'){
       callDate = excelDateToISO(row['Arama Tarihi']);
       if(!callDate){ failed.push(lineNo + '. satır: Aranacak durumunda arama tarihi zorunlu'); return; }
     }
-    let payment = null, amount = 0;
-    if(status==='sold'){
-      const pRaw = (row['Odeme Sekli']||'').toString().trim().toLowerCase();
-      payment = pRaw.includes('kredi') ? 'Kredi Kartı' : (pRaw.includes('nakit') ? 'Nakit' : null);
-      amount = parseFloat(row['Tutar']) || 0;
+    let appointmentDate = '', appointmentAttended = null, saleMade = null, amount = 0;
+    if(status==='appointment'){
+      appointmentDate = excelDateToISO(row['Randevu Tarihi']);
+      if(!appointmentDate){ failed.push(lineNo + '. satır: Randevu Verildi durumunda randevu tarihi zorunlu'); return; }
+      appointmentAttended = normalizeYesNo(row['Geldi Mi']);
+      if(appointmentAttended === true){
+        saleMade = normalizeYesNo(row['Satis Yapildi Mi']);
+        if(saleMade === true) amount = parseFloat(row['Tutar']) || 0;
+      }
     }
     let phone = (row['Telefon']||'').toString().replace(/\D/g,'');
     if(phone.length === 10 && phone[0] !== '0') phone = '0' + phone;
@@ -1899,15 +1603,16 @@ async function importRows(rows){
 
     const staffUsername = (row['Personel']||'').toString().trim() || state.currentUser.username;
     const staffUser = state.users.find(u=>u.username===staffUsername);
+    const purchased = status==='appointment' && appointmentAttended===true && saleMade===true;
 
     newChannels.add(channel);
     validRecords.push({
-      date, channel, services, products,
+      date, channel, services,
       customerName: (row['Musteri Adi']||'').toString().trim(),
       customerPhone: phone,
       followStatus: status,
-      purchased: status==='sold',
-      callDate, payment, amount,
+      purchased,
+      callDate, appointmentDate, appointmentAttended, saleMade, amount,
       note: (row['Not']||'').toString().trim(),
       callLog: [],
       staffUsername,
@@ -1936,42 +1641,10 @@ async function importRows(rows){
     (failed.length ? `<br><span style="color:var(--danger);">${failed.length} satır atlandı:</span><br>` + failed.slice(0,15).map(f=>'· '+f).join('<br>') + (failed.length>15 ? '<br>… ve ' + (failed.length-15) + ' tane daha' : '') : '');
   showToast(ok + ' kayıt eklendi.');
 }
-window.setCampaignType = function(t){ state.campaign.type = t; render(); }
-window.saveCampaignSettings = async function(){
-  const title = document.getElementById('campTitle').value.trim();
-  const targetItem = state.campaign.type==='auto' ? (document.getElementById('campTargetItem').value || '') : '';
-  if(state.campaign.type==='auto' && title && !targetItem){ showToast('Bir ürün/hizmet seç.'); return; }
-  state.campaign = { ...state.campaign, title, targetItem };
-  await saveCampaign();
-  showToast('Kampanya kaydedildi.');
-  render();
-}
-window.updateManualScore = async function(username){
-  const val = parseInt(document.getElementById('campScore_'+username).value) || 0;
-  state.campaign.manualScores = { ...(state.campaign.manualScores||{}), [username]: val };
-  await saveCampaign();
-  showToast('Güncellendi.');
-  render();
-}
-window.resetCampaign = async function(){
-  state.campaign = { ...state.campaign, manualScores:{}, monthKey: currentMonthKey() };
-  await saveCampaign();
-  showToast('Kampanya sıfırlandı, yeni ay için hazır.');
-  render();
-}
-window.saveBusinessSettings = async function(){
-  const monthlyQuota = parseFloat(document.getElementById('qMonthlyQuota').value) || 0;
-  const minContributionPercent = parseFloat(document.getElementById('qMinContrib').value) || 0;
-  const commissionPercent = parseFloat(document.getElementById('qCommission').value) || 0;
-  BUSINESS = { monthlyQuota, minContributionPercent, commissionPercent };
-  await saveBusiness();
-  showToast('Kota ve prim ayarları kaydedildi.');
-  render();
-}
 
 /* ================= BACKUP ================= */
 window.exportData = function(){
-  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, categories: CATEGORIES, productCategories: PRODUCT_CATEGORIES, services: SERVICES, products: PRODUCTS, business: BUSINESS };
+  const payload = { exportedAt: new Date().toISOString(), users: state.users, records: state.records, channels: CHANNELS, categories: CATEGORIES, services: SERVICES };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1992,13 +1665,9 @@ window.importData = function(event){
       state.records = data.records;
       if(Array.isArray(data.channels)) CHANNELS = data.channels;
       if(Array.isArray(data.categories)) CATEGORIES = data.categories;
-      if(Array.isArray(data.productCategories)) PRODUCT_CATEGORIES = data.productCategories;
       if(Array.isArray(data.services)) SERVICES = data.services;
-      if(Array.isArray(data.products)) PRODUCTS = data.products;
-      if(data.business) BUSINESS = data.business;
       for(const u of state.users){ await setDoc(doc(db,'users',u.username), { name:u.name, password:u.password, role:u.role }); }
       await saveConfig();
-      await saveBusiness();
       showToast('Veriler geri yüklendi.');
       render();
     }catch(err){ showToast('Dosya okunamadı, geçerli bir yedek dosyası seç.'); }
@@ -2014,9 +1683,7 @@ window.importData = function(event){
     subscribeUsers();
     subscribeRecords();
     subscribeConfig();
-    subscribeBusiness();
     subscribePresence();
-    subscribeCampaign();
     await seedUsersIfEmpty();
   }catch(e){
     setConn(false);
