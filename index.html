@@ -567,7 +567,6 @@ function completeLogin(found){
 }
 window.handleLogout = function(){
   if(presenceInterval){ clearInterval(presenceInterval); presenceInterval = null; }
-  if(state.currentUser){ deleteDoc(doc(db,'presence', state.currentUser.username)).catch(()=>{}); }
   state.currentUser = null;
   try{ localStorage.removeItem('gpb_remember'); }catch(e){}
   document.getElementById('app').style.display = 'none';
