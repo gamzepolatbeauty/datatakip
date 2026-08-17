@@ -21,18 +21,18 @@
   :root{
     --bg: #FAF6F0;
     --surface: #FFFFFF;
-    --surface-2: #F3EEE5;
-    --surface-3: #EAE1CF;
-    --border: #E3D8C4;
-    --gold: #A8834B;
-    --gold-dim: #8A6B3A;
-    --rose: #B5637E;
-    --text: #2E2620;
-    --text-muted: #7A6C58;
-    --text-faint: #A79878;
-    --success: #7C8F5A;
-    --danger: #B14B3E;
-    --info: #8B6F9E;
+    --surface-2: #F1EADA;
+    --surface-3: #E3D5B8;
+    --border: #D9C8AC;
+    --gold: #B8863E;
+    --gold-dim: #8F6428;
+    --rose: #A8365A;
+    --text: #241D15;
+    --text-muted: #6E5F47;
+    --text-faint: #A2937A;
+    --success: #4F7A34;
+    --danger: #A6301C;
+    --info: #5A3E82;
   }
   *{box-sizing:border-box;}
   body{
@@ -111,15 +111,15 @@
   .chip-group{ display:flex; flex-wrap:wrap; gap:8px; }
   .chip{ padding:9px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13px; }
   .chip:hover{ border-color:var(--gold); }
-  .chip.selected{ background:rgba(168,131,75,0.16); border-color:var(--gold); color:var(--gold); }
+  .chip.selected{ background:rgba(184,134,62,0.16); border-color:var(--gold); color:var(--gold); }
   .chip small{ opacity:0.75; margin-left:4px; }
   .toggle-group{ display:flex; gap:8px; }
   .toggle-btn{ flex:1; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-muted); font-size:13.5px; }
-  .toggle-btn.selected.yes{ background:rgba(124,143,90,0.16); border-color:var(--success); color:var(--success); }
-  .toggle-btn.selected.no{ background:rgba(177,75,62,0.16); border-color:var(--danger); color:var(--danger); }
-  .toggle-btn.selected.pending{ background:rgba(168,131,75,0.16); border-color:var(--gold); color:var(--gold); }
-  .badge.pending{ background:rgba(168,131,75,0.16); color:var(--gold); }
-  .badge.negative{ background:rgba(177,75,62,0.16); color:var(--danger); }
+  .toggle-btn.selected.yes{ background:rgba(79,122,52,0.16); border-color:var(--success); color:var(--success); }
+  .toggle-btn.selected.no{ background:rgba(166,48,28,0.16); border-color:var(--danger); color:var(--danger); }
+  .toggle-btn.selected.pending{ background:rgba(184,134,62,0.16); border-color:var(--gold); color:var(--gold); }
+  .badge.pending{ background:rgba(184,134,62,0.16); color:var(--gold); }
+  .badge.negative{ background:rgba(166,48,28,0.16); color:var(--danger); }
   .divider{ height:1px; background:var(--border); margin:22px 0; }
   .helper-text{ font-size:12px; color:var(--text-faint); margin-top:8px; }
 
@@ -130,11 +130,11 @@
   tbody td{ padding:12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
   tbody tr:hover{ background:var(--surface-2); }
   .badge{ display:inline-block; padding:3px 9px; border-radius:12px; font-size:11.5px; white-space:nowrap; }
-  .badge.sold{ background:rgba(124,143,90,0.16); color:var(--success); }
+  .badge.sold{ background:rgba(79,122,52,0.16); color:var(--success); }
   .badge.nosale{ background:rgba(122,108,88,0.14); color:var(--text-muted); }
-  .badge.cash{ background:rgba(168,131,75,0.16); color:var(--gold); }
-  .badge.card{ background:rgba(181,99,126,0.16); color:var(--rose); }
-  .badge.eligible{ background:rgba(124,143,90,0.16); color:var(--success); }
+  .badge.cash{ background:rgba(184,134,62,0.16); color:var(--gold); }
+  .badge.card{ background:rgba(168,54,90,0.16); color:var(--rose); }
+  .badge.eligible{ background:rgba(79,122,52,0.16); color:var(--success); }
   .badge.noteligible{ background:rgba(122,108,88,0.14); color:var(--text-muted); }
   .empty-state{ text-align:center; padding:50px 20px; color:var(--text-faint); }
 
@@ -150,15 +150,15 @@
   .progress-track{ height:10px; border-radius:6px; background:var(--surface-3); overflow:hidden; }
   .progress-fill{ height:100%; background:var(--gold); border-radius:6px; transition:width .3s; }
   .celebrate-banner{
-    background:linear-gradient(90deg, rgba(168,131,75,0.18), rgba(181,99,126,0.18));
+    background:linear-gradient(90deg, rgba(184,134,62,0.18), rgba(168,54,90,0.18));
     border:1px solid var(--gold); border-radius:14px; padding:18px 22px; margin-bottom:18px;
     display:flex; align-items:center; gap:14px; font-size:14px;
   }
   .celebrate-banner .emoji{ font-size:28px; animation:pulse 1.6s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.18); } }
   @keyframes urgent-glow{
-    0%,100%{ box-shadow: 0 0 0 0 rgba(177,75,62,0.5); background: rgba(177,75,62,0.18); color: var(--danger); transform:scale(1); }
-    50%{ box-shadow: 0 0 14px 4px rgba(177,75,62,0.65); background: var(--danger); color: #ffffff; transform:scale(1.08); }
+    0%,100%{ box-shadow: 0 0 0 0 rgba(166,48,28,0.5); background: rgba(166,48,28,0.18); color: var(--danger); transform:scale(1); }
+    50%{ box-shadow: 0 0 14px 4px rgba(166,48,28,0.65); background: var(--danger); color: #ffffff; transform:scale(1.08); }
   }
   .overdue-blink{
     display:inline-block; padding:3px 10px; border-radius:12px; font-weight:700;
@@ -290,6 +290,7 @@
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Data Ekle</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Görüşme Takip</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
+      <button class="nav-item" data-view="activity" id="navActivity" onclick="setView('activity')"><span class="nav-dot"></span><span class="label">İşlem Geçmişi</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
       <div class="sidebar-footer">
         <div class="user-chip">
@@ -309,6 +310,7 @@
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Data Ekle</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Görüşme</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
+    <button class="nav-item" data-view="activity" id="navActivityMobile" onclick="setView('activity')"><span class="tab-icon">🕐</span>Geçmiş</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
   </div>
 </div>
@@ -367,10 +369,22 @@ let state = {
   dashboardRange: 'all',
   charts: {},
   presence: {},
+  activityLog: [],
   editRecord: null
 };
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+async function logActivity(action, detail){
+  if(!state.currentUser) return;
+  try{
+    await addDoc(collection(db,'activityLog'), {
+      timestamp: new Date().toISOString(),
+      staffUsername: state.currentUser.username,
+      staffName: state.currentUser.name,
+      action, detail: detail || ''
+    });
+  }catch(e){}
+}
 function currentMonthKey(){ return new Date().toISOString().slice(0,7); }
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -415,6 +429,13 @@ function subscribePresence(){
     state.presence = {};
     snap.docs.forEach(d=>{ state.presence[d.id] = d.data(); });
     if(state.currentUser && state.view==='dashboard') render();
+  }, err=>{});
+}
+function subscribeActivityLog(){
+  onSnapshot(collection(db,'activityLog'), snap=>{
+    state.activityLog = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+      .sort((a,b)=>(b.timestamp||'').localeCompare(a.timestamp||''));
+    if(state.currentUser && state.view==='activity') render();
   }, err=>{});
 }
 async function updatePresence(){
@@ -564,12 +585,15 @@ function renderShellForUser(){
   document.getElementById('navSettingsMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
   document.getElementById('navDashboard').style.display = u.role === 'admin' ? 'flex' : 'none';
   document.getElementById('navDashboardMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
+  document.getElementById('navActivity').style.display = u.role === 'admin' ? 'flex' : 'none';
+  document.getElementById('navActivityMobile').style.display = u.role === 'admin' ? 'flex' : 'none';
 }
 
 /* ================= NAV ================= */
 window.setView = function(view){
   if(view === 'dashboard' && (!state.currentUser || state.currentUser.role !== 'admin')) view = 'new';
   if(view === 'settings' && (!state.currentUser || state.currentUser.role !== 'admin')) view = 'new';
+  if(view === 'activity' && (!state.currentUser || state.currentUser.role !== 'admin')) view = 'new';
   state.view = view;
   document.querySelectorAll('.nav-item').forEach(el=>{
     el.classList.toggle('active', el.dataset.view === view);
@@ -583,6 +607,7 @@ function render(){
   if(state.view === 'new') main.innerHTML = renderNewView();
   else if(state.view === 'records') main.innerHTML = renderRecordsView();
   else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
+  else if(state.view === 'activity') main.innerHTML = renderActivityView();
   else if(state.view === 'settings') main.innerHTML = renderSettingsView();
   if(state.view === 'dashboard') requestAnimationFrame(renderCharts);
 }
@@ -596,9 +621,14 @@ function pendingDueList(){
     return status==='pending' && r.callDate && r.callDate <= today;
   });
 }
+function todayAppointmentsList(){
+  const today = todayISO();
+  return state.records.filter(r=> r.followStatus==='appointment' && r.appointmentDate===today && r.appointmentAttended===null);
+}
 function renderNewView(){
   const r = state.newRecord;
   const due = pendingDueList();
+  const todayAppts = todayAppointmentsList();
   const channelChips = CHANNELS.map(c=>`<button class="chip ${r.channel===c?'selected':''}" onclick="setChannel('${c}')">${c}</button>`).join('');
   if(!state.serviceCategoryFilter) state.serviceCategoryFilter = CATEGORIES[0] || 'Diğer';
   const subcats = SUBCATEGORIES[state.serviceCategoryFilter] || [];
@@ -618,9 +648,14 @@ function renderNewView(){
     <div class="kpi-card"><div class="kpi-label">Toplam ciron</div><div class="kpi-value">${money(myTotal)}</div></div>
   </div>
   ${due.length > 0 ? `
-  <div class="celebrate-banner" style="border-color:var(--danger); background:rgba(177,75,62,0.12);">
+  <div class="celebrate-banner" style="border-color:var(--danger); background:rgba(166,48,28,0.12);">
     <span class="emoji" style="animation:none;">📞</span>
     <div><b>${due.length} kişiyi bugün (veya daha önceden) araman gerekiyor.</b> <a href="#" onclick="event.preventDefault(); window.setView('records');" style="color:var(--gold); text-decoration:underline; cursor:pointer;">Kayıtlar'a git →</a></div>
+  </div>` : ''}
+  ${todayAppts.length > 0 ? `
+  <div class="celebrate-banner" style="border-color:var(--info); background:rgba(90,62,130,0.12);">
+    <span class="emoji" style="animation:none;">📅</span>
+    <div><b>Bugün ${todayAppts.length} randevu var.</b> <a href="#" onclick="event.preventDefault(); window.setView('records');" style="color:var(--gold); text-decoration:underline; cursor:pointer;">Kayıtlar'a git →</a></div>
   </div>` : ''}
   <div class="card">
     <div class="form-section-title">İletişim kanalı</div>
@@ -637,8 +672,8 @@ function renderNewView(){
     ${r.services.length ? `<div class="form-section-title" style="margin-top:0;">Seçilen hizmetler</div><div class="chip-group" style="margin-bottom:22px;">${selectedServicesChips}</div>` : '<div style="margin-bottom:22px;"></div>'}
 
     <div class="grid-3" style="margin-bottom:22px;">
-      <div class="field"><label>Müşteri adı (opsiyonel)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
-      <div class="field"><label>Telefon (opsiyonel)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="handlePhoneInput(this)" inputmode="numeric" maxlength="11" placeholder="05xx xxx xx xx"></div>
+      <div class="field"><label>Müşteri adı (zorunlu)</label><input id="fCustomerName" value="${r.customerName}" oninput="state.newRecord.customerName=this.value" placeholder="Ad Soyad"></div>
+      <div class="field"><label>Telefon (zorunlu)</label><input id="fCustomerPhone" value="${r.customerPhone}" oninput="handlePhoneInput(this)" inputmode="numeric" maxlength="11" placeholder="05xx xxx xx xx"></div>
       <div class="field"><label>Tarih</label><input id="fDate" type="date" value="${r.date}" onchange="state.newRecord.date=this.value"></div>
     </div>
 
@@ -683,7 +718,7 @@ function renderNewView(){
     ` : ''}
     ` : ''}
 
-    <div class="field" style="margin-top:14px;"><label>Not (opsiyonel)</label><input id="fNote" value="${r.note}" oninput="state.newRecord.note=this.value" placeholder="Ek bilgi"></div>
+    <div class="field" style="margin-top:14px;"><label>Not (zorunlu)</label><input id="fNote" value="${r.note}" oninput="state.newRecord.note=this.value" placeholder="Ek bilgi"></div>
 
     <div style="display:flex; gap:10px; margin-top:14px;">
       <button class="btn secondary" style="max-width:160px;" onclick="resetNewRecordForm()">Vazgeç</button>
@@ -727,6 +762,9 @@ window.submitRecord = async function(){
   const r = state.newRecord;
   if(!r.channel){ showToast('Lütfen iletişim kanalını seç.'); return; }
   if(r.services.length===0){ showToast('Lütfen en az bir hizmet seç.'); return; }
+  if(!r.customerName || !r.customerName.trim()){ showToast('Müşteri adı zorunlu.'); return; }
+  if(!r.customerPhone || !r.customerPhone.trim()){ showToast('Telefon numarası zorunlu.'); return; }
+  if(!r.note || !r.note.trim()){ showToast('Not alanı zorunlu.'); return; }
   if(!r.followStatus){ showToast('Sonucu seç: Aranacak, Randevu Verildi ya da Olumsuz.'); return; }
   if(r.followStatus==='pending' && !r.callDate){ showToast('Aranacak olarak işaretlediğin için bir arama tarihi girmen gerekiyor.'); return; }
   if(r.followStatus==='appointment' && !r.appointmentDate){ showToast('Randevu tarihi girmen gerekiyor.'); return; }
@@ -765,6 +803,7 @@ window.submitRecord = async function(){
   };
   try{
     await addDoc(collection(db,'records'), record);
+    logActivity('Yeni kayıt eklendi', (record.customerName||'İsimsiz') + ' — ' + record.services.map(itemName).join(', '));
     state.newRecord = { date: todayISO(), channel:null, services:[], followStatus:null, appointmentDate:'', appointmentAttended:null, saleMade:null, amount:'', callDate:'', customerName:'', customerPhone:'', note:'' };
     showToast('Kayıt eklendi.');
     render();
@@ -927,8 +966,10 @@ window.updateFilter = function(key, val){
   }
 }
 window.deleteRecord = async function(id){
+  const rec = state.records.find(r=>r.id===id);
   try{
     await deleteDoc(doc(db,'records',id));
+    logActivity('Kayıt silindi', rec ? (rec.customerName||'İsimsiz') : id);
     showToast('Kayıt silindi.');
   }catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
 }
@@ -1083,6 +1124,8 @@ window.saveRecordEdit = async function(){
       amount: saleMade ? (parseFloat(e.amount)||0) : 0,
       callLog: e.callLog
     }, { merge:true });
+    const statusLabels = { pending:'Aranacak', appointment:'Randevu Verildi', negative:'Olumsuz' };
+    logActivity('Kayıt güncellendi (' + (statusLabels[e.followStatus]||e.followStatus) + ')', noteVal);
     closeModal();
     showToast('Kaydedildi.');
   }catch(err){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
@@ -1100,6 +1143,56 @@ function recordsInRange(){
   const fromISO = from.toISOString().slice(0,10);
   return state.records.filter(r=>r.date >= fromISO);
 }
+/* ================= İŞLEM GEÇMİŞİ VIEW (admin) ================= */
+function formatDateTimeDisplay(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+}
+function renderActivityView(){
+  if(!state.activityFilters) state.activityFilters = { staff:'', from:'', to:'' };
+  const f = state.activityFilters;
+  const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
+  const rows = state.activityLog.filter(a=>{
+    if(f.staff && a.staffUsername !== f.staff) return false;
+    const day = (a.timestamp||'').slice(0,10);
+    if(f.from && day < f.from) return false;
+    if(f.to && day > f.to) return false;
+    return true;
+  });
+  return `
+  <div class="page-header">
+    <div><h1>İşlem Geçmişi</h1><p>Personelin hangi saatte ne yaptığının kaydı — ${rows.length} işlem gösteriliyor.</p></div>
+  </div>
+  <div class="card">
+    <div class="filters-row">
+      <select onchange="updateActivityFilter('staff', this.value)">
+        <option value="">Tüm personel</option>
+        ${staffOptions}
+      </select>
+      <input type="date" value="${f.from}" onchange="updateActivityFilter('from', this.value)">
+      <input type="date" value="${f.to}" onchange="updateActivityFilter('to', this.value)">
+    </div>
+    ${rows.length ? `
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Tarih / Saat</th><th>Personel</th><th>İşlem</th><th>Detay</th></tr></thead>
+      <tbody>
+        ${rows.map(a=>`<tr><td>${formatDateTimeDisplay(a.timestamp)}</td><td>${a.staffName}</td><td>${a.action}</td><td>${a.detail||'-'}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    </div>` : `<div class="empty-state">Bu filtrelere uyan işlem yok.</div>`}
+  </div>
+  `;
+}
+window.updateActivityFilter = function(key, val){ state.activityFilters[key] = val; render(); }
+
 function renderDashboardView(){
   const recs = recordsInRange();
   const total = recs.length;
@@ -1147,8 +1240,8 @@ function renderDashboardView(){
       <h3>Dönüşüm oranı</h3>
       <div class="gauge-wrap">
         <svg width="130" height="130" viewBox="0 0 140 140">
-          <circle cx="70" cy="70" r="58" fill="none" stroke="#E3D8C4" stroke-width="12"/>
-          <circle cx="70" cy="70" r="58" fill="none" stroke="#A8834B" stroke-width="12"
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#D9C8AC" stroke-width="12"/>
+          <circle cx="70" cy="70" r="58" fill="none" stroke="#B8863E" stroke-width="12"
             stroke-dasharray="${2*Math.PI*58}" stroke-dashoffset="${2*Math.PI*58*(1-conv/100)}"
             stroke-linecap="round" transform="rotate(-90 70 70)"/>
           <text x="70" y="66" text-anchor="middle" class="gauge-num">${conv}%</text>
@@ -1194,7 +1287,7 @@ function renderCharts(){
   Object.values(state.charts).forEach(c=>c && c.destroy());
   state.charts = {};
 
-  const gold = '#A8834B', rose='#B5637E', muted='#7A6C58', border='#E3D8C4';
+  const gold = '#B8863E', rose='#A8365A', muted='#6E5F47', border='#D9C8AC';
 
   const apptRecs = recs.filter(r=>r.followStatus==='appointment');
   const apptAttended = apptRecs.filter(r=>r.appointmentAttended===true).length;
@@ -1203,7 +1296,7 @@ function renderCharts(){
   if(document.getElementById('chartPayment')){
     state.charts.payment = new Chart(document.getElementById('chartPayment'), {
       type:'doughnut',
-      data:{ labels:['Geldi','Gelmedi','Bekleniyor'], datasets:[{ data:[apptAttended,apptNotAttended,apptUnknown], backgroundColor:[gold,'#B14B3E',rose], borderColor:'#FFFFFF', borderWidth:2 }] },
+      data:{ labels:['Geldi','Gelmedi','Bekleniyor'], datasets:[{ data:[apptAttended,apptNotAttended,apptUnknown], backgroundColor:[gold,'#A6301C',rose], borderColor:'#FFFFFF', borderWidth:2 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
     });
   }
@@ -1239,7 +1332,7 @@ function renderCharts(){
   if(document.getElementById('chartTrend')){
     state.charts.trend = new Chart(document.getElementById('chartTrend'), {
       type:'line',
-      data:{ labels: trendDays.map(d=>d.slice(5)), datasets:[{ label:'Ciro', data:trendData, borderColor:gold, backgroundColor:'rgba(168,131,75,0.15)', fill:true, tension:0.3, pointRadius:0 }] },
+      data:{ labels: trendDays.map(d=>d.slice(5)), datasets:[{ label:'Ciro', data:trendData, borderColor:gold, backgroundColor:'rgba(184,134,62,0.15)', fill:true, tension:0.3, pointRadius:0 }] },
       options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
         scales:{ y:{ beginAtZero:true, ticks:{ color:muted }, grid:{ color:border } }, x:{ ticks:{ color:muted, maxTicksLimit:10 }, grid:{ display:false } } } }
     });
@@ -1730,6 +1823,7 @@ window.importData = function(event){
     subscribeRecords();
     subscribeConfig();
     subscribePresence();
+    subscribeActivityLog();
     await seedUsersIfEmpty();
   }catch(e){
     setConn(false);
