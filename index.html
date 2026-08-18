@@ -172,9 +172,13 @@
   .leader-amount{ font-family:'Fraunces',serif; font-size:16px; color:var(--gold); }
   .leader-track{ width:120px; height:7px; border-radius:4px; background:var(--surface-3); overflow:hidden; margin-left:12px; flex-shrink:0; }
   .leader-track-fill{ height:100%; background:var(--gold); border-radius:4px; }
-  .calllog-item{ font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--border); }
-  .calllog-item:last-child{ border-bottom:none; }
-  .calllog-item b{ color:var(--gold); }
+  .calllog-item{
+    font-size:14px; padding:12px 14px; margin-bottom:8px;
+    background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--gold);
+    border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.06); line-height:1.5;
+  }
+  .calllog-item:last-child{ margin-bottom:0; }
+  .calllog-item b{ color:var(--gold); font-size:13px; }
 
   .user-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); gap:10px; flex-wrap:wrap; }
   .user-row:last-child{ border-bottom:none; }
@@ -632,7 +636,7 @@ function renderNewView(){
   if(!state.serviceCategoryFilter) state.serviceCategoryFilter = CATEGORIES[0] || 'Diğer';
   const subcats = SUBCATEGORIES[state.serviceCategoryFilter] || [];
   const serviceChips = subcats.map(name=>`<button class="chip ${r.services.some(x=>itemName(x)===name)?'selected':''}" onclick="toggleService('${name}')">${name}</button>`).join('');
-  const selectedServicesChips = r.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${s.category} - ${s.name}<span onclick="toggleService('${s.name}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
+  const selectedServicesChips = r.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${s.category||'Diğer'} - ${s.name}<span onclick="toggleService('${s.name}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
 
   const myRecs = state.records.filter(x=>x.staffUsername===state.currentUser.username && x.purchased);
   const myTotal = myRecs.reduce((s,x)=>s+x.amount,0);
@@ -884,6 +888,28 @@ function statusBadgeHtml(r){
   }
   return '-';
 }
+function tomorrowISO(){
+  const d = new Date(); d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+function todayTomorrowGroups(){
+  const today = todayISO();
+  const tomorrow = tomorrowISO();
+  const todayCalls = state.records.filter(r=>(r.followStatus||'pending')==='pending' && r.callDate && r.callDate <= today);
+  const tomorrowCalls = state.records.filter(r=>(r.followStatus||'pending')==='pending' && r.callDate === tomorrow);
+  const todayAppts = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate===today && r.appointmentAttended===null);
+  const tomorrowAppts = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate===tomorrow && r.appointmentAttended===null);
+  return { todayCalls, tomorrowCalls, todayAppts, tomorrowAppts };
+}
+function pinnedRow(r, extra){
+  return `<div class="user-row" style="cursor:pointer; padding:9px 0;" onclick="openRecordEditModal('${r.id}')">
+    <div>
+      <div style="font-size:13.5px;">${r.customerName || '<span style="color:var(--text-faint)">İsimsiz</span>'} ${r.customerPhone ? '<span style="color:var(--text-faint); font-size:12px;">· '+r.customerPhone+'</span>' : ''}</div>
+      <div style="font-size:11.5px; color:var(--text-faint);">${(r.services||[]).map(itemName).join(', ') || '-'} ${extra||''}</div>
+    </div>
+    <button class="icon-btn">Düzenle</button>
+  </div>`;
+}
 function renderRecordsView(){
   const f = state.recordFilters;
   const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
@@ -911,10 +937,28 @@ function renderRecordsView(){
   `;
   }).join('') : '';
 
+  const g = todayTomorrowGroups();
+  const hasPinned = g.todayCalls.length || g.tomorrowCalls.length || g.todayAppts.length || g.tomorrowAppts.length;
+  if(state.pinnedPanelOpen === undefined) state.pinnedPanelOpen = true;
+
   return `
   <div class="page-header">
     <div><h1>Görüşme Takip</h1><p>${rows.length} kayıt gösteriliyor (toplam ${state.records.length}) — öncelik sırasına göre (Aranacak → Randevu Verildi → sonuçlananlar).</p></div>
   </div>
+  ${hasPinned ? `
+  <div class="card" style="margin-bottom:18px; border-color:var(--gold);">
+    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="togglePinnedPanel()">
+      <div class="form-section-title" style="margin:0;">📌 Bugün & Yarın (${g.todayCalls.length + g.tomorrowCalls.length + g.todayAppts.length + g.tomorrowAppts.length})</div>
+      <span style="color:var(--gold); font-size:12px;">${state.pinnedPanelOpen ? 'Gizle ▲' : 'Göster ▼'}</span>
+    </div>
+    ${state.pinnedPanelOpen ? `
+    <div style="margin-top:12px;">
+      ${g.todayCalls.length ? `<div class="helper-text" style="color:var(--danger); font-weight:600; margin-bottom:4px;">Bugün / geçmiş aranacaklar (${g.todayCalls.length})</div>` + g.todayCalls.map(r=>pinnedRow(r, '· '+formatDateDisplay(r.callDate))).join('') + `<div class="divider"></div>` : ''}
+      ${g.todayAppts.length ? `<div class="helper-text" style="color:var(--info); font-weight:600; margin-bottom:4px;">Bugünkü randevular (${g.todayAppts.length})</div>` + g.todayAppts.map(r=>pinnedRow(r)).join('') + `<div class="divider"></div>` : ''}
+      ${g.tomorrowCalls.length ? `<div class="helper-text" style="color:var(--gold); font-weight:600; margin-bottom:4px;">Yarın aranacaklar (${g.tomorrowCalls.length})</div>` + g.tomorrowCalls.map(r=>pinnedRow(r)).join('') + `<div class="divider"></div>` : ''}
+      ${g.tomorrowAppts.length ? `<div class="helper-text" style="color:var(--gold); font-weight:600; margin-bottom:4px;">Yarınki randevular (${g.tomorrowAppts.length})</div>` + g.tomorrowAppts.map(r=>pinnedRow(r)).join('') : ''}
+    </div>` : ''}
+  </div>` : ''}
   <div class="card">
     <div class="filters-row">
       <input id="recordSearchInput" type="text" placeholder="Ara: isim, telefon, not" value="${f.q}" oninput="updateFilter('q', this.value)" style="min-width:200px;">
@@ -956,6 +1000,7 @@ function renderRecordsView(){
   <button id="scrollTopBtn" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Başa dön" style="position:fixed; bottom:90px; right:28px; width:48px; height:48px; border-radius:50%; background:var(--gold); color:#211A0E; border:none; font-size:20px; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; z-index:120;">↑</button>
   `;
 }
+window.togglePinnedPanel = function(){ state.pinnedPanelOpen = !state.pinnedPanelOpen; render(); }
 window.updateFilter = function(key, val){
   state.recordFilters[key] = val;
   render();
@@ -998,7 +1043,7 @@ function renderRecordEditModal(){
   const isAdmin = state.currentUser.role === 'admin';
   const editSubcats = SUBCATEGORIES[state.editServiceCategoryFilter] || [];
   const editServiceChips = editSubcats.map(name=>`<button class="chip ${e.services.some(x=>itemName(x)===name)?'selected':''}" onclick="toggleEditService('${name}')">${name}</button>`).join('');
-  const editSelectedServicesChips = e.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${s.category} - ${s.name}<span onclick="toggleEditService('${s.name}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
+  const editSelectedServicesChips = e.services.map(s=>`<span class="chip selected" style="display:inline-flex; align-items:center; gap:6px;">${s.category||'Diğer'} - ${s.name}<span onclick="toggleEditService('${s.name}')" style="cursor:pointer; color:var(--danger); font-weight:700;">✕</span></span>`).join('');
   document.getElementById('modalCard').innerHTML = `
     <h3>Kaydı düzenle${rec.customerName ? ' — '+rec.customerName : ''}</h3>
 
@@ -1037,7 +1082,7 @@ function renderRecordEditModal(){
     ` : ''}
 
     <div class="form-section-title" style="margin-top:16px;">Arama / görüşme geçmişi</div>
-    <div style="max-height:200px; overflow-y:auto; margin-bottom:10px; padding-right:4px;">
+    <div style="max-height:240px; overflow-y:auto; margin-bottom:10px; padding:12px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;">
       ${e.callLog.length ? e.callLog.map((l,idx)=>`<div class="calllog-item">
           <div style="display:flex; justify-content:space-between; gap:8px;">
             <div><b>${formatDateDisplay(l.date)}</b> · ${l.by}</div>
