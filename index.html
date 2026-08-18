@@ -1089,6 +1089,12 @@ window.deleteCallLogEntry = async function(idx){
 }
 window.saveRecordEdit = async function(){
   const e = state.editRecord;
+  const callDateEl = document.getElementById('editCallDate');
+  if(callDateEl) e.callDate = callDateEl.value;
+  const apptDateEl = document.getElementById('editAppointmentDate');
+  if(apptDateEl) e.appointmentDate = apptDateEl.value;
+  const amountEl = document.getElementById('editAmount');
+  if(amountEl) e.amount = amountEl.value;
   const noteInput = document.getElementById('editNoteInput');
   const noteVal = noteInput ? noteInput.value.trim() : '';
   const servicesChanged = JSON.stringify(e.services) !== JSON.stringify((state.records.find(r=>r.id===e.id)||{}).services||[]);
