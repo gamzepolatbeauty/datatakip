@@ -24,15 +24,16 @@
     --surface-2: #F1EADA;
     --surface-3: #E3D5B8;
     --border: #D9C8AC;
-    --gold: #B8863E;
-    --gold-dim: #8F6428;
+    --gold: #E0A824;
+    --gold-dim: #B8860F;
     --rose: #A8365A;
-    --text: #241D15;
+    --text: #1A140D;
     --text-muted: #6E5F47;
     --text-faint: #A2937A;
-    --success: #4F7A34;
-    --danger: #A6301C;
+    --success: #3F8A3F;
+    --danger: #E5483D;
     --info: #5A3E82;
+    --ink: #171310;
   }
   *{box-sizing:border-box;}
   body{
@@ -77,31 +78,35 @@
   /* ---------- APP SHELL ---------- */
   #app{ display:none; min-height:100vh; }
   .shell{ display:flex; min-height:100vh; }
-  .sidebar{ width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:24px 16px; }
-  .brand{ display:flex; align-items:center; gap:10px; padding:0 8px 24px 8px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .sidebar{ width:220px; flex-shrink:0; background:var(--ink); border-right:1px solid #3A2E1E; display:flex; flex-direction:column; padding:24px 16px; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 8px 24px 8px; border-bottom:1px solid #3A2E1E; margin-bottom:20px; }
   .brand-mark{ width:32px;height:32px;border-radius:50%; border:1px solid var(--gold); display:flex;align-items:center;justify-content:center; flex-shrink:0; }
   .brand-mark span{ color:var(--gold); font-size:14px; }
-  .brand-name{ font-size:14px; line-height:1.3; }
-  .brand-name small{ display:block; color:var(--text-faint); font-size:10.5px; font-family:'Manrope',sans-serif; }
-  .nav-item{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:var(--text-muted); font-size:13.5px; margin-bottom:2px; background:none; border:none; width:100%; text-align:left; }
-  .nav-item:hover{ background:var(--surface-2); color:var(--text); }
-  .nav-item.active{ background:var(--surface-2); color:var(--gold); }
+  .brand-name{ font-size:14px; line-height:1.3; color:#F3E9D8; }
+  .brand-name small{ display:block; color:#A8987A; font-size:10.5px; font-family:'Manrope',sans-serif; }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:#C9BBA0; font-size:13.5px; margin-bottom:2px; background:none; border:none; width:100%; text-align:left; transition:background .15s, color .15s; }
+  .nav-item:hover{ background:rgba(255,255,255,0.08); color:#F3E9D8; }
+  .nav-item.active{ background:var(--gold); color:#211A0E; font-weight:700; box-shadow:0 2px 8px rgba(184,134,62,0.4); }
   .nav-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
-  .sidebar-footer{ margin-top:auto; padding-top:16px; border-top:1px solid var(--border); }
+  .sidebar-footer{ margin-top:auto; padding-top:16px; border-top:1px solid #3A2E1E; }
   .user-chip{ display:flex; align-items:center; gap:10px; padding:8px; margin-bottom:8px; }
-  .user-avatar{ width:30px;height:30px;border-radius:50%; background:var(--surface-3); display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:600; color:var(--gold); flex-shrink:0; }
+  .user-avatar{ width:30px;height:30px;border-radius:50%; background:#3A2E1E; display:flex;align-items:center;justify-content:center; font-size:12px; font-weight:600; color:var(--gold); flex-shrink:0; }
   .user-meta{ font-size:12.5px; line-height:1.3; overflow:hidden;}
-  .user-meta div:first-child{ color:var(--text); }
-  .user-meta div:last-child{ color:var(--text-faint); font-size:11px; }
-  .logout-btn{ width:100%; padding:9px; font-size:12.5px; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); }
-  .logout-btn:hover{ border-color:var(--danger); color:var(--danger); }
+  .user-meta div:first-child{ color:#F3E9D8; }
+  .user-meta div:last-child{ color:#A8987A; font-size:11px; }
+  .logout-btn{ width:100%; padding:9px; font-size:12.5px; background:none; border:1px solid #4A3B26; border-radius:8px; color:#C9BBA0; }
+  .logout-btn:hover{ border-color:var(--danger); color:#E8A99B; }
   .sync-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:6px; }
   .sync-dot.off{ background:var(--danger); }
 
   .main{ flex:1; padding:32px 40px; width:100%; }
-  .page-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:26px; flex-wrap:wrap; gap:12px; }
-  .page-header h1{ font-size:25px; margin:0; }
-  .page-header p{ color:var(--text-muted); font-size:13.5px; margin:4px 0 0 0; }
+  .page-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; flex-wrap:wrap; gap:12px;
+    background:var(--ink); border-radius:14px; padding:20px 24px;
+    border-bottom:3px solid var(--gold);
+  }
+  .page-header h1{ font-size:23px; margin:0; color:#F6EEDD; font-family:'Fraunces',serif; }
+  .page-header p{ color:#B5A688; font-size:13px; margin:4px 0 0 0; }
 
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; }
   .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
@@ -211,24 +216,25 @@
     .mobile-topbar{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       position:fixed; top:0; left:0; right:0; z-index:150;
-      background:var(--surface); border-bottom:1px solid var(--border);
+      background:var(--ink); border-bottom:1px solid #3A2E1E;
       padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top));
     }
     .mobile-topbar .brand{ border:none; padding:0; margin:0; }
-    .mobile-topbar .brand-name{ font-size:13.5px; }
+    .mobile-topbar .brand-name{ font-size:13.5px; color:#F3E9D8; }
     .mobile-topbar-right{ display:flex; align-items:center; gap:10px; }
-    .mobile-logout{ background:none; border:1px solid var(--border); border-radius:8px; padding:7px 12px; color:var(--text-muted); font-size:12px; }
+    .mobile-logout{ background:none; border:1px solid #4A3B26; border-radius:8px; padding:7px 12px; color:#C9BBA0; font-size:12px; }
     .mobile-tabbar{
       display:flex; position:fixed; bottom:0; left:0; right:0; z-index:150;
-      background:var(--surface); border-top:1px solid var(--border);
+      background:var(--ink); border-top:1px solid #3A2E1E;
       padding-bottom:env(safe-area-inset-bottom);
     }
     .mobile-tabbar .nav-item{
       flex:1; flex-direction:column; align-items:center; gap:4px; padding:10px 4px 8px 4px;
-      border-radius:0; font-size:11px; text-align:center;
+      border-radius:0; font-size:11px; text-align:center; color:#C9BBA0;
     }
     .mobile-tabbar .nav-item .nav-dot{ display:none; }
-    .mobile-tabbar .nav-item.active{ background:none; }
+    .mobile-tabbar .nav-item.active{ background:none; color:var(--gold); box-shadow:none; }
+    .mobile-tabbar .nav-item.active .tab-icon{ background:var(--gold); color:#211A0E; border-color:var(--gold); }
     .mobile-tabbar .tab-icon{
       width:20px; height:20px; border-radius:6px; border:1.5px solid currentColor; display:flex;
       align-items:center; justify-content:center; font-size:11px;
@@ -293,6 +299,7 @@
       </div>
       <button class="nav-item" data-view="new" onclick="setView('new')"><span class="nav-dot"></span><span class="label">Data Ekle</span></button>
       <button class="nav-item" data-view="records" onclick="setView('records')"><span class="nav-dot"></span><span class="label">Görüşme Takip</span></button>
+      <button class="nav-item" data-view="appointments" onclick="setView('appointments')"><span class="nav-dot"></span><span class="label">Randevular</span></button>
       <button class="nav-item" data-view="dashboard" id="navDashboard" onclick="setView('dashboard')"><span class="nav-dot"></span><span class="label">Dashboard</span></button>
       <button class="nav-item" data-view="activity" id="navActivity" onclick="setView('activity')"><span class="nav-dot"></span><span class="label">İşlem Geçmişi</span></button>
       <button class="nav-item" data-view="settings" id="navSettings" onclick="setView('settings')"><span class="nav-dot"></span><span class="label">Ayarlar</span></button>
@@ -313,6 +320,7 @@
   <div class="mobile-tabbar">
     <button class="nav-item" data-view="new" onclick="setView('new')"><span class="tab-icon">+</span>Data Ekle</button>
     <button class="nav-item" data-view="records" onclick="setView('records')"><span class="tab-icon">≡</span>Görüşme</button>
+    <button class="nav-item" data-view="appointments" onclick="setView('appointments')"><span class="tab-icon">📅</span>Randevu</button>
     <button class="nav-item" data-view="dashboard" id="navDashboardMobile" onclick="setView('dashboard')"><span class="tab-icon">◔</span>Dashboard</button>
     <button class="nav-item" data-view="activity" id="navActivityMobile" onclick="setView('activity')"><span class="tab-icon">🕐</span>Geçmiş</button>
     <button class="nav-item" data-view="settings" id="navSettingsMobile" onclick="setView('settings')"><span class="tab-icon">⚙</span>Ayarlar</button>
@@ -609,6 +617,7 @@ function render(){
   const main = document.getElementById('mainContent');
   if(state.view === 'new') main.innerHTML = renderNewView();
   else if(state.view === 'records') main.innerHTML = renderRecordsView();
+  else if(state.view === 'appointments') main.innerHTML = renderAppointmentsView();
   else if(state.view === 'dashboard') main.innerHTML = renderDashboardView();
   else if(state.view === 'activity') main.innerHTML = renderActivityView();
   else if(state.view === 'settings') main.innerHTML = renderSettingsView();
@@ -1018,6 +1027,112 @@ window.deleteRecord = async function(id){
   }catch(e){ showToast('Silinemedi, bağlantıyı kontrol et.'); }
 }
 
+/* ================= RANDEVULAR VIEW ================= */
+function renderAppointmentsView(){
+  if(!state.apptFilters) state.apptFilters = { staff:'', status:'' };
+  const f = state.apptFilters;
+  const today = todayISO();
+  const tomorrow = tomorrowISO();
+
+  let appts = state.records.filter(r=>r.followStatus==='appointment');
+  if(f.staff) appts = appts.filter(r=>r.staffUsername===f.staff);
+  if(f.status==='waiting') appts = appts.filter(r=>r.appointmentAttended===null);
+  if(f.status==='attended') appts = appts.filter(r=>r.appointmentAttended===true);
+  if(f.status==='notattended') appts = appts.filter(r=>r.appointmentAttended===false);
+  if(f.status==='sold') appts = appts.filter(r=>r.purchased===true);
+
+  const totalAppts = state.records.filter(r=>r.followStatus==='appointment').length;
+  const todayCount = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate===today).length;
+  const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekEndISO = weekEnd.toISOString().slice(0,10);
+  const weekCount = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate>=today && r.appointmentDate<=weekEndISO).length;
+  const resolved = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentAttended!==null);
+  const attended = resolved.filter(r=>r.appointmentAttended===true);
+  const noShowRate = resolved.length ? Math.round((resolved.length-attended.length)/resolved.length*100) : 0;
+  const soldFromAppt = attended.filter(r=>r.purchased===true).length;
+  const convRate = attended.length ? Math.round(soldFromAppt/attended.length*100) : 0;
+
+  appts.sort((a,b)=>{
+    const aw = a.appointmentAttended===null ? 0 : 1;
+    const bw = b.appointmentAttended===null ? 0 : 1;
+    if(aw !== bw) return aw - bw;
+    if(aw===0) return (a.appointmentDate||'').localeCompare(b.appointmentDate||'');
+    return (b.appointmentDate||'').localeCompare(a.appointmentDate||'');
+  });
+
+  function sectionLabel(date){
+    if(date < today) return 'Geçmiş (henüz sonuçlanmamış)';
+    if(date === today) return 'Bugün';
+    if(date === tomorrow) return 'Yarın';
+    if(date <= weekEndISO) return 'Bu hafta';
+    return 'Daha sonra';
+  }
+  let lastSection = null;
+  const rowsHtml = appts.map(r=>{
+    let html = '';
+    if(r.appointmentAttended===null){
+      const sec = sectionLabel(r.appointmentDate||'');
+      if(sec !== lastSection){
+        html += `<tr><td colspan="7" style="padding:9px 12px; font-weight:700; color:var(--gold); background:var(--ink); border-radius:6px; border-bottom:none;">${sec}</td></tr>`;
+        lastSection = sec;
+      }
+    }
+    const dateColor = r.appointmentAttended===null ? callDateColor(r.appointmentDate) : 'var(--text)';
+    const blink = r.appointmentAttended===null && dateColor==='var(--danger)' ? 'overdue-blink' : '';
+    html += `<tr>
+      <td><span class="${blink}" style="color:${dateColor}; font-weight:600;">${formatDateDisplay(r.appointmentDate)}</span></td>
+      <td>${r.customerName || '-'}${r.customerPhone ? '<br><span style="color:var(--text-faint); font-size:12px;">'+r.customerPhone+'</span>' : ''}</td>
+      <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
+      <td>${statusBadgeHtml(r)}</td>
+      <td>${r.purchased ? money(r.amount) : '-'}</td>
+      <td>${r.staffName}</td>
+      <td><button class="icon-btn" onclick="openRecordEditModal('${r.id}')">Düzenle</button></td>
+    </tr>`;
+    return html;
+  }).join('');
+
+  const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
+
+  return `
+  <div class="page-header">
+    <div><h1>Randevular</h1><p>Tüm randevu verilen kayıtlar — bekleyenler en üstte, sonuçlananlar altta.</p></div>
+  </div>
+  <div class="grid-3" style="margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">Toplam randevu</div><div class="kpi-value">${totalAppts}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Bugünkü randevular</div><div class="kpi-value gold">${todayCount}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Önümüzdeki 7 gün</div><div class="kpi-value">${weekCount}</div></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:18px;">
+    <div class="kpi-card"><div class="kpi-label">Gelmeme oranı (sonuçlananlar arasında)</div><div class="kpi-value" style="color:var(--danger);">%${noShowRate}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Randevu → Satış dönüşüm oranı</div><div class="kpi-value" style="color:var(--success);">%${convRate}</div></div>
+  </div>
+  <div class="card">
+    <div class="filters-row">
+      <select onchange="updateApptFilter('staff', this.value)">
+        <option value="">Tüm personel</option>
+        ${staffOptions}
+      </select>
+      <select onchange="updateApptFilter('status', this.value)">
+        <option value="">Tüm durumlar</option>
+        <option value="waiting" ${f.status==='waiting'?'selected':''}>Bekleniyor</option>
+        <option value="attended" ${f.status==='attended'?'selected':''}>Geldi</option>
+        <option value="notattended" ${f.status==='notattended'?'selected':''}>Gelmedi</option>
+        <option value="sold" ${f.status==='sold'?'selected':''}>Satış yapıldı</option>
+      </select>
+    </div>
+    ${appts.length ? `
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Randevu Tarihi</th><th>Müşteri</th><th>Hizmet</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    </div>` : `<div class="empty-state">Henüz randevu verilmiş kayıt yok.</div>`}
+  </div>
+  <button onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Başa dön" style="position:fixed; bottom:28px; right:28px; width:48px; height:48px; border-radius:50%; background:var(--gold); color:#211A0E; border:none; font-size:20px; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; z-index:120;">↑</button>
+  `;
+}
+window.updateApptFilter = function(key, val){ state.apptFilters[key] = val; render(); }
+
 /* ================= KAYIT DÜZENLEME ================= */
 window.openRecordEditModal = function(id){
   const rec = state.records.find(r=>r.id===id);
@@ -1265,7 +1380,7 @@ function renderDashboardView(){
   return `
   <div class="page-header">
     <div><h1>Dashboard</h1><p>Kanal, hizmet ve personel bazlı performans.</p></div>
-    <select onchange="window.__setRange(this.value)" style="padding:9px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text);">
+    <select onchange="window.__setRange(this.value)" style="padding:9px 12px; background:#2A241A; border:1px solid #4A3B26; border-radius:8px; color:#F6EEDD;">
       <option value="all" ${state.dashboardRange==='all'?'selected':''}>Tüm zamanlar</option>
       <option value="today" ${state.dashboardRange==='today'?'selected':''}>Bugün</option>
       <option value="week" ${state.dashboardRange==='week'?'selected':''}>Son 7 gün</option>
@@ -1431,7 +1546,7 @@ function renderSettingsView(){
   return `
   <div class="page-header">
     <div><h1>Ayarlar</h1><p>Personel, hizmet fiyat listesi ve kategorileri yönet.</p></div>
-    ${tab==='personel' ? `<button class="btn secondary" style="width:auto; padding:10px 18px;" onclick="openUserModal(null)">+ Yeni personel</button>` : ''}
+    ${tab==='personel' ? `<button class="btn" style="width:auto; padding:10px 18px;" onclick="openUserModal(null)">+ Yeni personel</button>` : ''}
   </div>
 
   <div class="chip-group" style="margin-bottom:22px;">
