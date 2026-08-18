@@ -1092,7 +1092,7 @@ function renderRecordEditModal(){
         </div>`).reverse().join('') : '<div class="helper-text">Henüz not eklenmedi.</div>'}
     </div>
     <div class="field"><label>Bu görüşmede ne oldu? (not)</label><input id="editNoteInput" placeholder='örn. ulaşılamadı, "saat 5te arayın dedi", randevu oluşturuldu, merkeze geldi'></div>
-    <div class="helper-text" style="margin-bottom:14px;">Not girmeden çıkarsan hiçbir şey değişmez. Not girersen yukarıdan bir sonuç (Aranacak + tarih / Randevu Verildi / Olumsuz) seçmen gerekir.</div>
+    <div class="helper-text" style="margin-bottom:14px;">Yukarıda bir durum değiştirirsen (Aranacak/Randevu Verildi/Olumsuz) Kaydet'e bastığında bu değişiklik kaydedilir — not eklemek zorunlu değil ama önerilir.</div>
     <div style="display:flex; gap:10px;">
       <button class="btn secondary" onclick="closeModal()">Vazgeç</button>
       <button class="btn" onclick="saveRecordEdit()">Kaydet</button>
@@ -1142,9 +1142,12 @@ window.saveRecordEdit = async function(){
   if(amountEl) e.amount = amountEl.value;
   const noteInput = document.getElementById('editNoteInput');
   const noteVal = noteInput ? noteInput.value.trim() : '';
-  const servicesChanged = JSON.stringify(e.services) !== JSON.stringify((state.records.find(r=>r.id===e.id)||{}).services||[]);
+  const original = state.records.find(r=>r.id===e.id) || {};
+  const statusChanged = e.followStatus !== (original.followStatus || 'pending');
+  const servicesChanged = JSON.stringify(e.services) !== JSON.stringify(original.services||[]);
+  const dateChanged = e.callDate !== (original.callDate||'') || e.appointmentDate !== (original.appointmentDate||'') || e.appointmentAttended !== (original.appointmentAttended!==undefined?original.appointmentAttended:null) || e.saleMade !== (original.saleMade!==undefined?original.saleMade:null);
 
-  if(!noteVal){
+  if(!noteVal && !statusChanged && !dateChanged){
     if(servicesChanged){
       try{
         await setDoc(doc(db,'records',e.id), { services: e.services }, { merge:true });
@@ -1161,7 +1164,9 @@ window.saveRecordEdit = async function(){
   if(e.followStatus==='appointment' && e.appointmentAttended===true && e.saleMade===true && (!e.amount || parseFloat(e.amount)<=0)){ showToast('Satış tutarını gir.'); return; }
 
   const saleMade = e.followStatus==='appointment' && e.appointmentAttended===true && e.saleMade===true;
-  e.callLog.push({ date: todayISO(), by: state.currentUser.name, note: noteVal, nextCallDate: e.followStatus==='pending' ? e.callDate : (e.followStatus==='appointment' ? e.appointmentDate : null) });
+  if(noteVal){
+    e.callLog.push({ date: todayISO(), by: state.currentUser.name, note: noteVal, nextCallDate: e.followStatus==='pending' ? e.callDate : (e.followStatus==='appointment' ? e.appointmentDate : null) });
+  }
   try{
     await setDoc(doc(db,'records',e.id), {
       services: e.services,
