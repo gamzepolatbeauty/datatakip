@@ -1029,36 +1029,28 @@ window.deleteRecord = async function(id){
 
 /* ================= RANDEVULAR VIEW ================= */
 function renderAppointmentsView(){
-  if(!state.apptFilters) state.apptFilters = { staff:'', status:'' };
+  if(!state.apptFilters) state.apptFilters = { staff:'' };
+  if(state.showResolvedAppts === undefined) state.showResolvedAppts = false;
   const f = state.apptFilters;
   const today = todayISO();
   const tomorrow = tomorrowISO();
+  const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekEndISO = weekEnd.toISOString().slice(0,10);
 
-  let appts = state.records.filter(r=>r.followStatus==='appointment');
-  if(f.staff) appts = appts.filter(r=>r.staffUsername===f.staff);
-  if(f.status==='waiting') appts = appts.filter(r=>r.appointmentAttended===null);
-  if(f.status==='attended') appts = appts.filter(r=>r.appointmentAttended===true);
-  if(f.status==='notattended') appts = appts.filter(r=>r.appointmentAttended===false);
-  if(f.status==='sold') appts = appts.filter(r=>r.purchased===true);
+  let waiting = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentAttended===null);
+  let resolvedAll = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentAttended!==null);
+  if(f.staff){ waiting = waiting.filter(r=>r.staffUsername===f.staff); resolvedAll = resolvedAll.filter(r=>r.staffUsername===f.staff); }
 
   const totalAppts = state.records.filter(r=>r.followStatus==='appointment').length;
   const todayCount = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate===today).length;
-  const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
-  const weekEndISO = weekEnd.toISOString().slice(0,10);
   const weekCount = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentDate>=today && r.appointmentDate<=weekEndISO).length;
-  const resolved = state.records.filter(r=>r.followStatus==='appointment' && r.appointmentAttended!==null);
-  const attended = resolved.filter(r=>r.appointmentAttended===true);
-  const noShowRate = resolved.length ? Math.round((resolved.length-attended.length)/resolved.length*100) : 0;
+  const attended = resolvedAll.filter(r=>r.appointmentAttended===true);
+  const noShowRate = resolvedAll.length ? Math.round((resolvedAll.length-attended.length)/resolvedAll.length*100) : 0;
   const soldFromAppt = attended.filter(r=>r.purchased===true).length;
   const convRate = attended.length ? Math.round(soldFromAppt/attended.length*100) : 0;
 
-  appts.sort((a,b)=>{
-    const aw = a.appointmentAttended===null ? 0 : 1;
-    const bw = b.appointmentAttended===null ? 0 : 1;
-    if(aw !== bw) return aw - bw;
-    if(aw===0) return (a.appointmentDate||'').localeCompare(b.appointmentDate||'');
-    return (b.appointmentDate||'').localeCompare(a.appointmentDate||'');
-  });
+  waiting.sort((a,b)=>(a.appointmentDate||'').localeCompare(b.appointmentDate||''));
+  resolvedAll.sort((a,b)=>(b.appointmentDate||'').localeCompare(a.appointmentDate||''));
 
   function sectionLabel(date){
     if(date < today) return 'Geçmiş (henüz sonuçlanmamış)';
@@ -1067,19 +1059,10 @@ function renderAppointmentsView(){
     if(date <= weekEndISO) return 'Bu hafta';
     return 'Daha sonra';
   }
-  let lastSection = null;
-  const rowsHtml = appts.map(r=>{
-    let html = '';
-    if(r.appointmentAttended===null){
-      const sec = sectionLabel(r.appointmentDate||'');
-      if(sec !== lastSection){
-        html += `<tr><td colspan="7" style="padding:9px 12px; font-weight:700; color:var(--gold); background:var(--ink); border-radius:6px; border-bottom:none;">${sec}</td></tr>`;
-        lastSection = sec;
-      }
-    }
-    const dateColor = r.appointmentAttended===null ? callDateColor(r.appointmentDate) : 'var(--text)';
-    const blink = r.appointmentAttended===null && dateColor==='var(--danger)' ? 'overdue-blink' : '';
-    html += `<tr>
+  function apptRow(r, showColorDate){
+    const dateColor = showColorDate ? callDateColor(r.appointmentDate) : 'var(--text)';
+    const blink = showColorDate && dateColor==='var(--danger)' ? 'overdue-blink' : '';
+    return `<tr>
       <td><span class="${blink}" style="color:${dateColor}; font-weight:600;">${formatDateDisplay(r.appointmentDate)}</span></td>
       <td>${r.customerName || '-'}${r.customerPhone ? '<br><span style="color:var(--text-faint); font-size:12px;">'+r.customerPhone+'</span>' : ''}</td>
       <td>${(r.services||[]).map(itemName).join(', ') || '-'}</td>
@@ -1088,14 +1071,25 @@ function renderAppointmentsView(){
       <td>${r.staffName}</td>
       <td><button class="icon-btn" onclick="openRecordEditModal('${r.id}')">Düzenle</button></td>
     </tr>`;
+  }
+  let lastSection = null;
+  const waitingRowsHtml = waiting.map(r=>{
+    let html = '';
+    const sec = sectionLabel(r.appointmentDate||'');
+    if(sec !== lastSection){
+      html += `<tr><td colspan="7" style="padding:9px 12px; font-weight:700; color:var(--gold); background:var(--ink); border-radius:6px; border-bottom:none;">${sec}</td></tr>`;
+      lastSection = sec;
+    }
+    html += apptRow(r, true);
     return html;
   }).join('');
+  const resolvedRowsHtml = resolvedAll.map(r=>apptRow(r, false)).join('');
 
   const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
 
   return `
   <div class="page-header">
-    <div><h1>Randevular</h1><p>Tüm randevu verilen kayıtlar — bekleyenler en üstte, sonuçlananlar altta.</p></div>
+    <div><h1>Randevular</h1><p>Hâlâ sonuçlanmamış, senin ilgilenmen gereken randevular — sonuçlananlar aşağıda ayrı bir bölümde.</p></div>
   </div>
   <div class="grid-3" style="margin-bottom:18px;">
     <div class="kpi-card"><div class="kpi-label">Toplam randevu</div><div class="kpi-value">${totalAppts}</div></div>
@@ -1106,31 +1100,39 @@ function renderAppointmentsView(){
     <div class="kpi-card"><div class="kpi-label">Gelmeme oranı (sonuçlananlar arasında)</div><div class="kpi-value" style="color:var(--danger);">%${noShowRate}</div></div>
     <div class="kpi-card"><div class="kpi-label">Randevu → Satış dönüşüm oranı</div><div class="kpi-value" style="color:var(--success);">%${convRate}</div></div>
   </div>
-  <div class="card">
+  <div class="card" style="margin-bottom:18px;">
     <div class="filters-row">
       <select onchange="updateApptFilter('staff', this.value)">
         <option value="">Tüm personel</option>
         ${staffOptions}
       </select>
-      <select onchange="updateApptFilter('status', this.value)">
-        <option value="">Tüm durumlar</option>
-        <option value="waiting" ${f.status==='waiting'?'selected':''}>Bekleniyor</option>
-        <option value="attended" ${f.status==='attended'?'selected':''}>Geldi</option>
-        <option value="notattended" ${f.status==='notattended'?'selected':''}>Gelmedi</option>
-        <option value="sold" ${f.status==='sold'?'selected':''}>Satış yapıldı</option>
-      </select>
     </div>
-    ${appts.length ? `
+    ${waiting.length ? `
     <div style="overflow-x:auto;">
     <table>
       <thead><tr><th>Randevu Tarihi</th><th>Müşteri</th><th>Hizmet</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
-      <tbody>${rowsHtml}</tbody>
+      <tbody>${waitingRowsHtml}</tbody>
     </table>
-    </div>` : `<div class="empty-state">Henüz randevu verilmiş kayıt yok.</div>`}
+    </div>` : `<div class="empty-state">Sonuçlanmamış randevu yok — hepsi tamam! 🎉</div>`}
+  </div>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleResolvedAppts()">
+      <div class="form-section-title" style="margin:0;">Sonuçlanan randevular (${resolvedAll.length})</div>
+      <span style="color:var(--gold); font-size:12px;">${state.showResolvedAppts ? 'Gizle ▲' : 'Göster ▼'}</span>
+    </div>
+    ${state.showResolvedAppts ? `
+    <div style="margin-top:14px; overflow-x:auto;">
+      ${resolvedAll.length ? `
+      <table>
+        <thead><tr><th>Randevu Tarihi</th><th>Müşteri</th><th>Hizmet</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+        <tbody>${resolvedRowsHtml}</tbody>
+      </table>` : `<div class="empty-state">Henüz sonuçlanan randevu yok.</div>`}
+    </div>` : ''}
   </div>
   <button onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Başa dön" style="position:fixed; bottom:28px; right:28px; width:48px; height:48px; border-radius:50%; background:var(--gold); color:#211A0E; border:none; font-size:20px; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; z-index:120;">↑</button>
   `;
 }
+window.toggleResolvedAppts = function(){ state.showResolvedAppts = !state.showResolvedAppts; render(); }
 window.updateApptFilter = function(key, val){ state.apptFilters[key] = val; render(); }
 
 /* ================= KAYIT DÜZENLEME ================= */
@@ -1266,6 +1268,7 @@ window.saveRecordEdit = async function(){
     if(servicesChanged){
       try{
         await setDoc(doc(db,'records',e.id), { services: e.services }, { merge:true });
+        logActivity('Hizmet güncellendi', (original.customerName || 'İsimsiz') + (original.customerPhone ? ' ('+original.customerPhone+')' : ''));
         closeModal();
         showToast('Hizmet güncellendi.');
       }catch(err){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
@@ -1295,7 +1298,8 @@ window.saveRecordEdit = async function(){
       callLog: e.callLog
     }, { merge:true });
     const statusLabels = { pending:'Aranacak', appointment:'Randevu Verildi', negative:'Olumsuz' };
-    logActivity('Kayıt güncellendi (' + (statusLabels[e.followStatus]||e.followStatus) + ')', noteVal);
+    const custLabel = (original.customerName || 'İsimsiz') + (original.customerPhone ? ' ('+original.customerPhone+')' : '');
+    logActivity('Kayıt güncellendi (' + (statusLabels[e.followStatus]||e.followStatus) + ')', custLabel + (noteVal ? ' — '+noteVal : ''));
     closeModal();
     showToast('Kaydedildi.');
   }catch(err){ showToast('Kaydedilemedi, bağlantıyı kontrol et.'); }
