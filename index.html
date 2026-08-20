@@ -1407,13 +1407,13 @@ function renderDashboardView(){
   const recs = recordsInRange();
   const total = recs.length;
   const sold = recs.filter(r=>r.purchased).length;
-  const conv = total ? Math.round((sold/total)*100) : 0;
+  const conv = total ? Math.round((sold/total)*1000)/10 : 0;
   const revenue = recs.reduce((s,r)=>s+(r.purchased?r.amount:0),0);
 
   const channelStats = CHANNELS.map(c=>{
     const chanRecs = recs.filter(r=>r.channel===c);
-    const chanSold = chanRecs.filter(r=>(r.followStatus||(r.purchased?'sold':'pending'))==='sold').length;
-    const rate = chanRecs.length ? Math.round(chanSold/chanRecs.length*100) : 0;
+    const chanSold = chanRecs.filter(r=>r.purchased===true).length;
+    const rate = chanRecs.length ? Math.round(chanSold/chanRecs.length*1000)/10 : 0;
     return { c, total: chanRecs.length, sold: chanSold, rate };
   });
 
