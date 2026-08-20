@@ -957,8 +957,11 @@ function pinnedRow(r, extra){
 }
 function renderRecordsView(){
   const f = state.recordFilters;
+  const isAdmin = state.currentUser.role === 'admin';
+  if(!state.selectedRecordIds) state.selectedRecordIds = new Set();
   const staffOptions = state.users.map(u=>`<option value="${u.username}" ${f.staff===u.username?'selected':''}>${u.name}</option>`).join('');
   const rows = filteredRecords();
+  const allSelected = rows.length > 0 && rows.every(r=>state.selectedRecordIds.has(r.id));
   const rowsHtml = rows.length ? rows.map(r=>{
     const status = r.followStatus || 'pending';
     let dateCellHtml = '-';
@@ -967,8 +970,10 @@ function renderRecordsView(){
     } else if(status==='appointment'){
       dateCellHtml = r.appointmentDate ? formatDateDisplay(r.appointmentDate) : '-';
     }
+    const checked = state.selectedRecordIds.has(r.id);
     return `
     <tr>
+      ${isAdmin ? `<td><input type="checkbox" ${checked?'checked':''} onchange="toggleRecordSelection('${r.id}')" style="width:16px; height:16px; cursor:pointer;"></td>` : ''}
       <td>${formatDateDisplay(r.date)}</td>
       <td>${dateCellHtml}</td>
       <td>${r.channel}</td>
@@ -1034,10 +1039,19 @@ function renderRecordsView(){
       <input type="date" value="${f.from}" onchange="updateFilter('from', this.value)">
       <input type="date" value="${f.to}" onchange="updateFilter('to', this.value)">
     </div>
+    ${isAdmin && state.selectedRecordIds.size > 0 ? `
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 14px; margin-bottom:14px; background:var(--surface-2); border:1px solid var(--gold); border-radius:10px;">
+      <span style="font-weight:600; font-size:13px;">${state.selectedRecordIds.size} kayıt seçili</span>
+      <select id="bulkTransferSelect" style="padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12.5px;">
+        ${state.users.map(u=>`<option value="${u.username}">${u.name}</option>`).join('')}
+      </select>
+      <button class="icon-btn" onclick="bulkTransferSelected()">Seçilenleri aktar</button>
+      <button class="icon-btn danger" onclick="clearRecordSelection()">Seçimi temizle</button>
+    </div>` : ''}
     ${rows.length ? `
     <div style="overflow-x:auto;">
     <table>
-      <thead><tr><th>Geliş Tarihi</th><th>Arama/Randevu Tarihi</th><th>Kanal</th><th>Hizmet</th><th>Müşteri</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
+      <thead><tr>${isAdmin ? `<th><input type="checkbox" ${allSelected?'checked':''} onchange="toggleSelectAllRecords()" style="width:16px; height:16px; cursor:pointer;"></th>` : ''}<th>Geliş Tarihi</th><th>Arama/Randevu Tarihi</th><th>Kanal</th><th>Hizmet</th><th>Müşteri</th><th>Durum</th><th>Tutar</th><th>Personel</th><th></th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
     </div>` : `<div class="empty-state">Bu filtrelere uyan kayıt yok. Filtreleri temizleyip tekrar dene.</div>`}
@@ -1046,6 +1060,46 @@ function renderRecordsView(){
   `;
 }
 window.togglePinnedPanel = function(){ state.pinnedPanelOpen = !state.pinnedPanelOpen; render(); }
+window.toggleRecordSelection = function(id){
+  if(!state.selectedRecordIds) state.selectedRecordIds = new Set();
+  if(state.selectedRecordIds.has(id)) state.selectedRecordIds.delete(id);
+  else state.selectedRecordIds.add(id);
+  render();
+}
+window.toggleSelectAllRecords = function(){
+  if(!state.selectedRecordIds) state.selectedRecordIds = new Set();
+  const rows = filteredRecords();
+  const allSelected = rows.length > 0 && rows.every(r=>state.selectedRecordIds.has(r.id));
+  if(allSelected){ rows.forEach(r=>state.selectedRecordIds.delete(r.id)); }
+  else { rows.forEach(r=>state.selectedRecordIds.add(r.id)); }
+  render();
+}
+window.clearRecordSelection = function(){
+  state.selectedRecordIds = new Set();
+  render();
+}
+window.bulkTransferSelected = async function(){
+  if(state.currentUser.role !== 'admin') return;
+  const sel = document.getElementById('bulkTransferSelect');
+  if(!sel || !sel.value) return;
+  const newUser = state.users.find(u=>u.username===sel.value);
+  if(!newUser) return;
+  const ids = Array.from(state.selectedRecordIds);
+  if(ids.length === 0) return;
+  if(!confirm(ids.length + ' kayıt ' + newUser.name + '\'e aktarılacak. Onaylıyor musun?')) return;
+  try{
+    for(let i=0; i<ids.length; i+=400){
+      const chunk = ids.slice(i, i+400);
+      const batch = writeBatch(db);
+      chunk.forEach(id=> batch.set(doc(db,'records',id), { staffUsername: newUser.username, staffName: newUser.name }, { merge:true }));
+      await batch.commit();
+    }
+    logActivity('Toplu personel aktarımı', ids.length + ' kayıt → ' + newUser.name);
+    showToast(ids.length + ' kayıt ' + newUser.name + '\'e aktarıldı.');
+    state.selectedRecordIds = new Set();
+    render();
+  }catch(err){ showToast('Aktarılamadı, bağlantıyı kontrol et.'); }
+}
 window.updateFilter = function(key, val){
   state.recordFilters[key] = val;
   render();
@@ -1200,6 +1254,18 @@ function renderRecordEditModal(){
   document.getElementById('modalCard').innerHTML = `
     <h3>Kaydı düzenle${rec.customerName ? ' — '+rec.customerName : ''}</h3>
 
+    ${isAdmin ? `
+    <div class="form-section-title">Personel</div>
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+      <span class="helper-text" style="margin:0;">Şu an: <b style="color:var(--text);">${rec.staffName||'-'}</b></span>
+      <select id="transferStaffSelect" style="padding:8px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12.5px;">
+        ${state.users.filter(u=>u.username!==rec.staffUsername).map(u=>`<option value="${u.username}">${u.name}</option>`).join('')}
+      </select>
+      <button class="icon-btn" onclick="transferRecordStaff()">Aktar</button>
+    </div>
+    <div class="divider"></div>
+    ` : ''}
+
     <div class="form-section-title">Hizmet</div>
     <div class="field" style="max-width:240px; margin-bottom:10px;">
       <select onchange="setEditServiceCategoryFilter(this.value)">
@@ -1275,6 +1341,21 @@ window.setEditSaleMade = function(v){
   state.editRecord.saleMade = v;
   if(!v){ state.editRecord.amount=0; }
   renderRecordEditModal();
+}
+window.transferRecordStaff = async function(){
+  if(state.currentUser.role !== 'admin') return;
+  const sel = document.getElementById('transferStaffSelect');
+  if(!sel || !sel.value) return;
+  const newUser = state.users.find(u=>u.username===sel.value);
+  if(!newUser) return;
+  const rec = state.records.find(r=>r.id===state.editRecord.id);
+  const oldName = rec ? rec.staffName : '-';
+  try{
+    await setDoc(doc(db,'records',state.editRecord.id), { staffUsername: newUser.username, staffName: newUser.name }, { merge:true });
+    logActivity('Personel değiştirildi', (rec ? (rec.customerName||'İsimsiz') : '') + ' — ' + oldName + ' → ' + newUser.name);
+    showToast('Kayıt ' + newUser.name + '\'e aktarıldı.');
+    renderRecordEditModal();
+  }catch(err){ showToast('Aktarılamadı, bağlantıyı kontrol et.'); }
 }
 window.deleteCallLogEntry = async function(idx){
   if(state.currentUser.role !== 'admin') return;
@@ -1599,6 +1680,7 @@ function renderSettingsView(){
   <div class="card" style="max-width:900px; margin-bottom:18px;">
     <div class="form-section-title">Personel hesapları</div>
     ${userRows}
+  </div>
   </div>
   <div class="login-hint" style="max-width:900px;">
     Not: bu sistemdeki şifreler Firestore'da düz metin olarak tutuluyor, banka düzeyinde güvenlik sağlamaz.
